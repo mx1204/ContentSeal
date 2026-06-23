@@ -1,0 +1,23 @@
+{
+  "replace-with-sha256": {
+    "c2pa": {
+      "status": "present",
+      "claimGenerator": "Example AI Tool",
+      "actions": ["created", "edited"],
+      "signatureStatus": "valid",
+      "summary": "Mock C2PA fixture for demo media."
+    },
+    "watermark": {
+      "status": "found",
+      "confidence": 0.91,
+      "provider": "mock",
+      "explanation": "Mock watermark fixture indicates a supported AI-origin signal."
+    },
+    "classifier": {
+      "status": "ai_signal_found",
+      "confidence": 0.78,
+      "detectedArtifacts": ["synthetic texture patterns"],
+      "limitations": "Mock classifier result for demo only."
+    }
+  }
+}

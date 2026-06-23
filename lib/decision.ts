@@ -1,0 +1,128 @@
+import { getAsset, getReceipt } from "./db";
+import { hasEditSoftwareSignal, hasScreenshotOrPlatformMetadata } from "./metadata";
+import { isMaterialOcrConflict } from "./ocr";
+import type {
+  C2paInspection,
+  ClassifierInspection,
+  MediaAnalysis,
+  ReceiptSummary,
+  SimilarityMatch,
+  TrustBadge,
+  TrustLabel,
+  VerificationEvidence,
+  WatermarkInspection
+} from "./types";
+
+function c2paHasAiSignal(c2pa: C2paInspection) {
+  const haystack = [
+    c2pa.claimGenerator,
+    c2pa.summary,
+    ...c2pa.actions
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return /ai|generative|synthetic|midjourney|stable diffusion|dall|firefly/.test(haystack);
+}
+
+function c2paHasEditSignal(c2pa: C2paInspection) {
+  const haystack = [c2pa.summary, ...c2pa.actions].filter(Boolean).join(" ").toLowerCase();
+  return /edit|edited|crop|transform|resize|adjust|composite|export/.test(haystack);
+}
+
+export function classifyAiSignal(input: {
+  c2pa: C2paInspection;
+  watermark: WatermarkInspection;
+  classifier: ClassifierInspection;
+}) {
+  return (
+    c2paHasAiSignal(input.c2pa) ||
+    input.watermark.status === "found" ||
+    input.watermark.status === "weak_signal" ||
+    input.classifier.status === "ai_signal_found"
+  );
+}
+
+export function buildDecision(input: {
+  analysis: MediaAnalysis;
+  exactReceipt: ReceiptSummary | null;
+  visualMatch: SimilarityMatch | null;
+}) {
+  const { analysis, exactReceipt, visualMatch } = input;
+  const strongVisualMatch = Boolean(visualMatch && visualMatch.score >= 0.85);
+  const possibleVisualMatch = Boolean(visualMatch && visualMatch.score >= 0.7);
+  const matchedReceipt = exactReceipt ?? (possibleVisualMatch ? visualMatch?.receipt ?? null : null);
+  const matchedAsset = matchedReceipt ? getAsset(matchedReceipt.mediaId) : null;
+  const ocrConflict =
+    Boolean(strongVisualMatch && matchedAsset) &&
+    isMaterialOcrConflict(matchedAsset?.ocrText ?? "", analysis.ocrText);
+
+  const editSignal =
+    hasEditSoftwareSignal(analysis.metadata) ||
+    c2paHasEditSignal(analysis.c2pa) ||
+    Boolean(strongVisualMatch && !exactReceipt);
+  const aiSignal = classifyAiSignal({
+    c2pa: analysis.c2pa,
+    watermark: analysis.watermark,
+    classifier: analysis.classifier
+  });
+
+  let trustLabel: TrustLabel = "no_verified_origin_found";
+  if (exactReceipt) {
+    trustLabel = "verified_original";
+  } else if (strongVisualMatch && (ocrConflict || analysis.c2pa.status === "invalid")) {
+    trustLabel = "conflicting_signals";
+  } else if (strongVisualMatch && hasScreenshotOrPlatformMetadata(analysis.metadata)) {
+    trustLabel = "screenshot_repost_match";
+  } else if (strongVisualMatch) {
+    trustLabel = "modified_copy";
+  }
+
+  const badges = new Set<TrustBadge>();
+  if (strongVisualMatch || exactReceipt) {
+    badges.add("visual_match_found");
+  }
+  if (analysis.metadata.status === "missing") {
+    badges.add("metadata_missing");
+  }
+  if (analysis.c2pa.status === "present") {
+    badges.add("c2pa_present");
+  }
+  if (analysis.c2pa.status === "invalid") {
+    badges.add("c2pa_invalid");
+  }
+  if (analysis.watermark.status === "unavailable") {
+    badges.add("watermark_unavailable");
+  }
+  if (analysis.classifier.status === "inconclusive") {
+    badges.add("classifier_inconclusive");
+  }
+  if (aiSignal) {
+    badges.add("ai_origin_signal_found");
+  }
+  if (editSignal || ocrConflict) {
+    badges.add("edit_signal_found");
+  }
+
+  const evidence: VerificationEvidence = {
+    exactHashMatch: Boolean(exactReceipt),
+    visualSimilarityScore: exactReceipt ? 1 : visualMatch?.score ?? null,
+    matchedReceipt,
+    c2paStatus: analysis.c2pa.status,
+    watermarkStatus: analysis.watermark.status,
+    metadataStatus: analysis.metadata.status,
+    classifierStatus: analysis.classifier.status,
+    trustLabel,
+    creatorClaim: matchedReceipt?.creatorClaim,
+    proofCreatedAt: matchedReceipt?.proofCreatedAt,
+    ocrConflict,
+    editSignal,
+    aiSignal
+  };
+
+  return {
+    trustLabel,
+    badges: Array.from(badges),
+    evidence
+  };
+}
