@@ -126,20 +126,21 @@ const screenshot = await sharp({
       input: Buffer.from(`
         <svg width="1080" height="820" xmlns="http://www.w3.org/2000/svg">
           <rect width="1080" height="820" fill="#050807"/>
-          <rect x="54" y="36" width="972" height="748" rx="34" fill="#101c17" stroke="#263f35"/>
-          <rect x="84" y="66" width="912" height="74" rx="22" fill="#07100d"/>
-          <circle cx="128" cy="103" r="18" fill="#9cff63"/>
-          <text x="160" y="112" fill="#eef8f2" font-size="24" font-family="Inter, Arial, sans-serif" font-weight="700">Campus announcements</text>
-          <text x="780" y="112" fill="#b7c8c0" font-size="20" font-family="Inter, Arial, sans-serif">Forwarded image</text>
+          <rect x="0" y="0" width="1080" height="50" fill="#101c17"/>
+          <circle cx="42" cy="25" r="9" fill="#9cff63"/>
+          <text x="68" y="32" fill="#eef8f2" font-size="20" font-family="Inter, Arial, sans-serif" font-weight="700">Forwarded screenshot</text>
+          <text x="800" y="32" fill="#b7c8c0" font-size="18" font-family="Inter, Arial, sans-serif">metadata stripped</text>
+          <rect x="0" y="770" width="1080" height="50" fill="#101c17"/>
+          <text x="68" y="802" fill="#b7c8c0" font-size="18" font-family="Inter, Arial, sans-serif">Saved from chat as PNG</text>
         </svg>
       `),
       left: 0,
       top: 0
     },
     {
-      input: await sharp(original).resize({ width: 860 }).png().toBuffer(),
-      left: 110,
-      top: 176
+      input: original,
+      left: 0,
+      top: 50
     }
   ])
   .png()

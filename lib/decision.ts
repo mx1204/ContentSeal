@@ -78,19 +78,20 @@ export function buildDecision(input: {
   const strongVisualMatch = Boolean(visualMatch && visualMatch.score >= 0.85);
   const possibleVisualMatch = Boolean(visualMatch && visualMatch.score >= 0.7);
   const matchedReceipt = exactReceipt ?? (possibleVisualMatch ? visualMatch?.receipt ?? null : null);
-  const screenshotRecoverySignal =
-    strongVisualMatch &&
-    !exactReceipt &&
-    hasScreenshotOrPlatformMetadata(analysis.metadata) &&
-    hasScreenshotShapeChange(analysis, matchedReceipt);
   const ocrConflict =
     Boolean(strongVisualMatch && matchedAssetOcrText) &&
     isMaterialOcrConflict(matchedAssetOcrText ?? "", analysis.ocrText);
+  const screenshotLikeShapeChange = hasScreenshotShapeChange(analysis, matchedReceipt);
+  const screenshotRecoverySignal =
+    strongVisualMatch &&
+    !exactReceipt &&
+    !ocrConflict &&
+    (screenshotLikeShapeChange || hasScreenshotOrPlatformMetadata(analysis.metadata));
 
   const editSignal =
     hasEditSoftwareSignal(analysis.metadata) ||
     c2paHasEditSignal(analysis.c2pa) ||
-    Boolean(strongVisualMatch && !exactReceipt);
+    Boolean(strongVisualMatch && !exactReceipt && !screenshotRecoverySignal);
   const aiSignal = classifyAiSignal({
     c2pa: analysis.c2pa,
     watermark: analysis.watermark,

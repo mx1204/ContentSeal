@@ -4,6 +4,7 @@ const navItems = [
   { href: "/", label: "Home" },
   { href: "/create", label: "Seal Source" },
   { href: "/verify", label: "Recover Source" },
+  { href: "/history", label: "History" },
   { href: "/trust", label: "Trust Engine" },
   { href: "/demo", label: "Demo" }
 ];

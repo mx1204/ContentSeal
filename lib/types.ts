@@ -148,6 +148,24 @@ export interface TrustCard {
   what_we_verified: string[];
   what_we_could_not_verify: string[];
   recommended_action: string;
+  ai_evidence: {
+    source_recovery: {
+      label: string;
+      detail: string;
+    };
+    human_accountability: {
+      label: string;
+      detail: string;
+    };
+    synthetic_context: {
+      label: string;
+      detail: string;
+    };
+    change_risk: {
+      label: string;
+      detail: string;
+    };
+  };
 }
 
 export interface ReceiptSummary {

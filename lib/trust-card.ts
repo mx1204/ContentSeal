@@ -5,9 +5,9 @@ const CARD_SUMMARIES: Record<TrustLabel, string> = {
   verified_original:
     "This file exactly matches a ContentSeal proof receipt. The original source was recovered with deterministic file-level evidence.",
   modified_copy:
-    "This image is visually linked to a known ContentSeal proof receipt, but it is not the exact original file. Treat it as a changed copy until the proof page is checked.",
+    "This image is visually linked to a known ContentSeal proof receipt, but it is not the exact original file. Treat it as a changed-copy risk until the proof page is checked.",
   screenshot_repost_match:
-    "Metadata may be stripped, but ContentSeal recovered a visually related proof receipt. This looks like a screenshot, crop, or repost rather than the original file.",
+    "Metadata or exact file identity may be stripped, but ContentSeal recovered a visually related proof receipt. This looks like screenshot, crop, repost, compression, or re-export damage rather than the original file.",
   expired_content:
     "ContentSeal recovered a known proof receipt, but that receipt is expired or no longer current.",
   older_verified_version:
@@ -17,6 +17,101 @@ const CARD_SUMMARIES: Record<TrustLabel, string> = {
   conflicting_signals:
     "ContentSeal recovered a related proof receipt, but one or more signals conflict with the stored original."
 };
+
+function evidencePercent(value: number | null) {
+  return value == null ? "no similarity score" : `${Math.round(value * 100)}% visual similarity`;
+}
+
+function buildAiEvidence(evidence: VerificationEvidence): TrustCard["ai_evidence"] {
+  const sourceRecovery = evidence.exactHashMatch
+    ? {
+        label: "Original source recovered",
+        detail: "The uploaded bytes match a sealed receipt through SHA-256."
+      }
+    : evidence.matchedReceipt && evidence.visualSimilarityScore != null
+      ? {
+          label:
+            evidence.visualSimilarityScore >= 0.85
+              ? "Source recovered visually"
+              : "Possible source relationship",
+          detail: `${evidencePercent(
+            evidence.visualSimilarityScore
+          )} links this upload to "${evidence.matchedReceipt.title}".`
+        }
+      : {
+          label: "No trusted source recovered",
+          detail: "The current proof database has no receipt that matches this upload."
+        };
+
+  const humanAccountability = evidence.matchedReceipt
+    ? {
+        label: evidence.creatorTrustLevel === "self_declared" ? "Creator claim found" : "Accountable issuer found",
+        detail: `${evidence.creatorClaim ?? "The matched receipt"} is listed as ${
+          evidence.creatorTrustLevel ? CREATOR_TRUST_COPY[evidence.creatorTrustLevel] : "an issuer"
+        }.`
+      }
+    : {
+        label: "No accountable issuer",
+        detail: "No matched receipt means there is no recovered person or organisation to check yet."
+      };
+
+  const syntheticContext = evidence.aiSignal
+    ? {
+        label: "AI-origin signal present",
+        detail:
+          "A configured signal suggested synthetic-media involvement. This supports caution but is not a fake verdict."
+      }
+    : evidence.aiUsageDeclaration && evidence.aiUsageDeclaration !== "unknown"
+      ? {
+          label: "Declared AI context",
+          detail: `The matched receipt declares: ${AI_USAGE_COPY[evidence.aiUsageDeclaration]}.`
+        }
+      : evidence.classifierStatus === "not_run"
+        ? {
+            label: "AI classifier not configured",
+            detail:
+              "This scan relies on provenance, visual recovery, and receipt context because no classifier is active."
+          }
+        : {
+            label: "No strong AI-origin signal",
+            detail:
+              "Configured AI-origin signals did not produce a strong synthetic-media indicator for this upload."
+          };
+
+  let changeRisk = {
+    label: "Unknown change state",
+    detail: "No recovered source exists yet, so ContentSeal cannot compare this file to a trusted original."
+  };
+  if (evidence.exactHashMatch) {
+    changeRisk = {
+      label: "No file change detected",
+      detail: "The uploaded file is the exact original stored in the proof receipt."
+    };
+  } else if (evidence.trustLabel === "screenshot_repost_match") {
+    changeRisk = {
+      label: "Likely screenshot or repost",
+      detail:
+        "The source was recovered, but the uploaded file has transformed pixels, dimensions, metadata, or encoding."
+    };
+  } else if (evidence.trustLabel === "modified_copy") {
+    changeRisk = {
+      label: "Changed-copy risk",
+      detail: "The source was recovered, but this copy should be compared against the original proof before sharing."
+    };
+  } else if (evidence.trustLabel === "conflicting_signals" || evidence.ocrConflict) {
+    changeRisk = {
+      label: "High conflict risk",
+      detail: "Recovered-source signals conflict with stored proof evidence or visible text."
+    };
+  }
+
+  return {
+    source_recovery: sourceRecovery,
+    human_accountability: humanAccountability,
+    synthetic_context: syntheticContext,
+    change_risk: changeRisk
+  };
+}
 
 export function generateTrustCard(evidence: VerificationEvidence): TrustCard {
   const verified: string[] = [];
@@ -126,6 +221,7 @@ export function generateTrustCard(evidence: VerificationEvidence): TrustCard {
     summary: CARD_SUMMARIES[evidence.trustLabel],
     what_we_verified: Array.from(new Set(verified)),
     what_we_could_not_verify: Array.from(new Set(unverified)),
-    recommended_action
+    recommended_action,
+    ai_evidence: buildAiEvidence(evidence)
   };
 }

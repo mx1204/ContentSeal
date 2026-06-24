@@ -15,8 +15,8 @@ npm run demo:assets
 Generated files:
 
 - `01-original-proof.png`: upload first in `Seal Source`.
-- `02-edited-copy.png`: upload in `Recover Source`; expected label is `Modified Copy` or `Conflicting Signals`.
-- `03-screenshot-repost.png`: upload in `Recover Source`; expected label is `Screenshot / Repost Match`.
+- `02-edited-copy.png`: upload in `Recover Source`; expected label is `Changed Copy Risk` or `Conflicting Signals`.
+- `03-screenshot-repost.png`: upload in `Recover Source`; expected label is `Source Recovered From Screenshot`.
 - `04-unknown-ai-style.png`: upload in `Recover Source`; expected label is `No Verified Origin Found`.
 
 Recommended pitch path:

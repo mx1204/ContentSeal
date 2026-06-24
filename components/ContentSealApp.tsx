@@ -4,20 +4,19 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   BadgeCheck,
-  CalendarClock,
   Database,
   ExternalLink,
   FileText,
   Fingerprint,
   Globe2,
   Image as ImageIcon,
-  Info,
   Link as LinkIcon,
   ListChecks,
   Loader2,
   SearchCheck,
   ShieldAlert,
   ShieldCheck,
+  Sparkles,
   Trash2,
   Upload
 } from "lucide-react";
@@ -107,6 +106,12 @@ interface VerificationResponse {
     what_we_verified: string[];
     what_we_could_not_verify: string[];
     recommended_action: string;
+    ai_evidence: {
+      source_recovery: AiEvidenceItem;
+      human_accountability: AiEvidenceItem;
+      synthetic_context: AiEvidenceItem;
+      change_risk: AiEvidenceItem;
+    };
   };
   analysis: {
     mediaId: string;
@@ -122,23 +127,10 @@ interface VerificationResponse {
   };
 }
 
-const demoCases = [
-  {
-    title: "Official Event Poster",
-    label: "Create proof",
-    src: "/demo/assets/01-original-proof.png"
-  },
-  {
-    title: "Edited Copy",
-    label: "Conflict demo",
-    src: "/demo/assets/02-edited-copy.png"
-  },
-  {
-    title: "Screenshot / Repost",
-    label: "Similarity demo",
-    src: "/demo/assets/03-screenshot-repost.png"
-  }
-];
+interface AiEvidenceItem {
+  label: string;
+  detail: string;
+}
 
 const clientProofsStorageKey = "contentseal.clientProofs.v1";
 const maxClientPreviewBytes = 1_500_000;
@@ -408,6 +400,64 @@ function BadgePill({ badge }: { badge: TrustBadge }) {
   );
 }
 
+function AiEvidenceLayer({
+  evidence
+}: {
+  evidence: VerificationResponse["ai_trust_card"]["ai_evidence"];
+}) {
+  const cards = [
+    {
+      title: "Source recovery",
+      icon: Fingerprint,
+      item: evidence.source_recovery
+    },
+    {
+      title: "Human accountability",
+      icon: ShieldCheck,
+      item: evidence.human_accountability
+    },
+    {
+      title: "AI / synthetic context",
+      icon: Sparkles,
+      item: evidence.synthetic_context
+    },
+    {
+      title: "Change risk",
+      icon: AlertTriangle,
+      item: evidence.change_risk
+    }
+  ];
+
+  return (
+    <div className="rounded-md border border-pulse/25 bg-pulse/8 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-pulse">
+            <Sparkles size={16} />
+            AI Evidence Layer
+          </h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-frost/68">
+            An AI-assisted explainer translates provenance signals into source, accountability, synthetic-media,
+            and change-risk context. It supports human judgment; it is not a truth verdict.
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        {cards.map(({ title, icon: Icon, item }) => (
+          <div className="scan-panel rounded-md border border-white/10 bg-void/55 p-3" key={title}>
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase text-frost/45">
+              <Icon className="text-wire" size={15} />
+              {title}
+            </div>
+            <p className="mt-2 text-sm font-semibold text-frost">{item.label}</p>
+            <p className="mt-1 text-sm leading-5 text-frost/62">{item.detail}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ReceiptContext({ receipt }: { receipt: Receipt | null | undefined }) {
   if (!receipt) {
     return null;
@@ -445,7 +495,7 @@ export function ContentSealApp({
 }: {
   initialTab?: "create" | "verify";
 }) {
-  const [activeTab, setActiveTab] = useState<"create" | "verify">(initialTab);
+  const activeTab = initialTab;
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [proofResult, setProofResult] = useState<ProofResponse | null>(null);
   const [verifyResult, setVerifyResult] = useState<VerificationResponse | null>(null);
@@ -623,34 +673,32 @@ export function ContentSealApp({
           <div className="scanner-sweep" />
           <div className="relative">
             <div className="grid grid-cols-2 rounded-md border border-white/10 bg-void/70 p-1">
-              <button
+              <a
                 aria-pressed={activeTab === "create"}
                 className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition ${
                   activeTab === "create"
                     ? "bg-pulse text-void shadow-sm"
                     : "text-frost/60 hover:bg-white/8 hover:text-frost"
                 }`}
+                href="/create"
                 id="create"
-                type="button"
-                onClick={() => setActiveTab("create")}
               >
                 <Upload size={16} />
                 Create
-              </button>
-              <button
+              </a>
+              <a
                 aria-pressed={activeTab === "verify"}
                 className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition ${
                   activeTab === "verify"
                     ? "bg-pulse text-void shadow-sm"
                     : "text-frost/60 hover:bg-white/8 hover:text-frost"
                 }`}
+                href="/verify"
                 id="verify"
-                type="button"
-                onClick={() => setActiveTab("verify")}
               >
                 <SearchCheck size={16} />
                 Recover
-              </button>
+              </a>
             </div>
 
             {activeTab === "create" ? (
@@ -838,111 +886,95 @@ export function ContentSealApp({
               </form>
             )}
 
-            <div className="mt-6 border-t border-white/10 pt-4">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-sm font-semibold text-frost">Recent Proof Receipts</h2>
-                <span className="rounded-full bg-white/8 px-2 py-1 text-xs font-medium text-frost/60">
+            <div className="mt-6 grid gap-3 border-t border-white/10 pt-4">
+              <a
+                className="interactive-button inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-white/12 bg-white/5 px-3 py-2 text-sm font-semibold text-frost hover:bg-white/10"
+                href="/history"
+              >
+                <ListChecks size={16} />
+                Proof History
+                <span className="rounded-full bg-white/10 px-2 py-0.5 font-mono text-xs text-frost/65">
                   {receipts.length}
                 </span>
-              </div>
-              <div className="mt-3 grid gap-2">
-                {receipts.slice(0, 4).map((receipt) => (
-                  <div
-                    className="scan-panel rounded-md border border-white/10 bg-void/55 p-3 text-sm hover:border-wire/35 hover:bg-wire/10"
-                    key={receipt.id}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <a className="min-w-0 flex-1" href={`/proofs/${receipt.id}`}>
-                        <span className="block truncate font-medium text-frost">{receipt.title}</span>
-                        <span className="mt-1 block text-xs text-frost/55">
-                          {PROOF_STATUS_COPY[proofStatus(receipt)]} / {receipt.versionNumber || "No version"}
-                        </span>
-                      </a>
-                      <button
-                        aria-label={`Delete ${receipt.title}`}
-                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-clay/30 bg-clay/10 text-clay hover:bg-clay hover:text-void disabled:cursor-not-allowed disabled:opacity-60"
-                        disabled={deletingReceiptId === receipt.id}
-                        title="Delete proof"
-                        type="button"
-                        onClick={() => void deleteReceipt(receipt)}
-                      >
-                        {deletingReceiptId === receipt.id ? (
-                          <Loader2 className="animate-spin" size={15} />
-                        ) : (
-                          <Trash2 size={15} />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                {receipts.length === 0 ? (
-                  <p className="rounded-md border border-white/10 bg-void/55 px-3 py-3 text-sm text-frost/58">
-                    Proof receipts created in this local demo will appear here.
-                  </p>
-                ) : null}
-                {deleteError ? (
-                  <p className="rounded-md border border-clay/40 bg-clay/12 px-3 py-2 text-sm text-clay">
-                    {deleteError}
-                  </p>
-                ) : null}
-              </div>
+              </a>
+              <a
+                className="interactive-button inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-wire/20 bg-wire/10 px-3 py-2 text-sm font-semibold text-wire hover:bg-wire hover:text-void"
+                href="/demo"
+              >
+                <ImageIcon size={16} />
+                Demo Fixture Lab
+              </a>
+              {deleteError ? (
+                <p className="rounded-md border border-clay/40 bg-clay/12 px-3 py-2 text-sm text-clay">
+                  {deleteError}
+                </p>
+              ) : null}
             </div>
           </div>
         </aside>
 
         <section className="grid content-start gap-5">
-          <div className={`${panelClass("relative overflow-hidden")}`}>
-            <div className="scanner-sweep" />
-            <div className="relative grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-              <div>
-                <p className="text-sm font-semibold text-wire">Authenticity in a synthetic world</p>
-                <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-normal text-frost sm:text-4xl">
-                  Seal a source before content spreads. Recover it after metadata disappears.
-                </h2>
-                <p className="mt-3 max-w-3xl text-sm leading-6 text-frost/68">
-                  ContentSeal creates lightweight proof receipts for official content, then lets viewers recover
-                  that source even when a screenshot, crop, repost, or compressed copy loses its metadata.
-                </p>
-                <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  <div className="scan-panel rounded-md border border-white/10 bg-void/55 p-3">
-                    <Fingerprint className="text-pulse" size={18} />
-                    <p className="mt-2 text-sm font-semibold">Source recovery</p>
-                    <p className="mt-1 text-xs leading-5 text-frost/58">SHA-256 first, pHash when bytes change.</p>
-                  </div>
-                  <div className="scan-panel rounded-md border border-white/10 bg-void/55 p-3">
-                    <CalendarClock className="text-pulse" size={18} />
-                    <p className="mt-2 text-sm font-semibold">Lifecycle status</p>
-                    <p className="mt-1 text-xs leading-5 text-frost/58">Expiry, revocation, updates, deletion.</p>
-                  </div>
-                  <div className="scan-panel rounded-md border border-white/10 bg-void/55 p-3">
-                    <Info className="text-pulse" size={18} />
-                    <p className="mt-2 text-sm font-semibold">No fake verdict</p>
-                    <p className="mt-1 text-xs leading-5 text-frost/58">Unknown means no recovered proof yet.</p>
+          {activeTab === "create" && !proofResult ? (
+            <div className={panelClass("relative overflow-hidden")}>
+              <div className="scanner-sweep" />
+              <div className="relative grid gap-5 md:grid-cols-[minmax(0,1fr)_280px]">
+                <div>
+                  <p className="text-sm font-semibold text-wire">Seal Source</p>
+                  <h2 className="mt-2 text-3xl font-semibold tracking-normal text-frost">
+                    Create the accountable original before screenshots spread.
+                  </h2>
+                  <p className="mt-3 text-sm leading-6 text-frost/68">
+                    A proof receipt stores source hash, visual fingerprints, issuer claim, declared AI usage,
+                    lifecycle state, and official-source context. Recover scans compare against this receipt later.
+                  </p>
+                </div>
+                <div className="rounded-md border border-white/10 bg-void/55 p-4">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-frost">
+                    <Fingerprint size={16} />
+                    What this creates
+                  </p>
+                  <div className="mt-4 grid gap-3 text-sm text-frost/68">
+                    <p>Exact SHA-256 proof for the original file.</p>
+                    <p>Perceptual hashes for screenshots, crops, and reposts.</p>
+                    <p>Human accountability fields for issuer and official source.</p>
+                    <p>Lifecycle controls such as expiry, version, and deletion.</p>
                   </div>
                 </div>
               </div>
-              <div className="grid gap-3">
-                {demoCases.map((item) => (
-                  <div
-                    className="scan-panel grid grid-cols-[84px_minmax(0,1fr)] gap-3 rounded-md border border-white/10 bg-void/55 p-2"
-                    key={item.title}
-                  >
-                    <img
-                      alt={item.title}
-                      className="h-20 w-20 rounded-md border border-white/10 object-cover"
-                      src={item.src}
-                    />
-                    <div className="min-w-0 self-center">
-                      <p className="truncate text-sm font-semibold text-frost">{item.title}</p>
-                      <p className="mt-1 text-xs font-medium text-pulse">{item.label}</p>
-                    </div>
+            </div>
+          ) : null}
+
+          {activeTab === "verify" && !verifyResult ? (
+            <div className={panelClass("relative overflow-hidden")}>
+              <div className="scanner-sweep" />
+              <div className="relative grid gap-5 md:grid-cols-[minmax(0,1fr)_280px]">
+                <div>
+                  <p className="text-sm font-semibold text-wire">Recover Source</p>
+                  <h2 className="mt-2 text-3xl font-semibold tracking-normal text-frost">
+                    Scan a screenshot, repost, crop, compressed image, or public image URL.
+                  </h2>
+                  <p className="mt-3 text-sm leading-6 text-frost/68">
+                    The result separates deterministic proof from weaker AI and metadata signals, then explains
+                    whether the source, human accountability, synthetic context, and change risk can be trusted.
+                  </p>
+                </div>
+                <div className="rounded-md border border-white/10 bg-void/55 p-4">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-frost">
+                    <Sparkles size={16} />
+                    AI evidence output
+                  </p>
+                  <div className="mt-4 grid gap-3 text-sm text-frost/68">
+                    <p>Source recovery: exact, visual, possible, or not found.</p>
+                    <p>Human accountability: who issued the recovered receipt.</p>
+                    <p>Synthetic context: declared AI usage and configured AI signals.</p>
+                    <p>Change risk: exact original, screenshot/repost, changed copy, or conflict.</p>
                   </div>
-                ))}
+                </div>
               </div>
             </div>
-          </div>
+          ) : null}
 
-          {proofResult ? (
+          {activeTab === "create" && proofResult ? (
             <div className={panelClass("border-pulse/25 shadow-pulse/5")}>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -1000,7 +1032,7 @@ export function ContentSealApp({
             </div>
           ) : null}
 
-          {verifyResult ? (
+          {activeTab === "verify" && verifyResult ? (
             <div className={panelClass("border-wire/25")}>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -1039,6 +1071,8 @@ export function ContentSealApp({
 
               <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
                 <div className="grid gap-4">
+                  <AiEvidenceLayer evidence={verifyResult.ai_trust_card.ai_evidence} />
+
                   <div className="rounded-md border border-white/10 bg-void/55 p-4">
                     <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-frost">
                       <Database size={16} />
@@ -1125,44 +1159,30 @@ export function ContentSealApp({
             </div>
           ) : null}
 
-          {!proofResult && !verifyResult ? (
-            <div className={panelClass()}>
-              <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_280px]">
-                <div>
-                  <div className="grid h-14 w-14 place-items-center rounded-md border border-wire/30 bg-wire/10 text-wire">
-                    <ImageIcon size={28} />
-                  </div>
-                  <h2 className="mt-4 text-xl font-semibold text-frost">Ready to seal a source or recover one</h2>
-                  <p className="mt-2 text-sm leading-6 text-frost/68">
-                    Use Create for official notices, posters, announcements, and visual claims before they spread.
-                    Use Verify when the only thing people have is a screenshot, repost, compressed copy, crop, or direct image URL.
-                  </p>
-                  <div className="mt-4 rounded-md border border-amber/30 bg-amber/10 p-4">
-                    <p className="flex items-center gap-2 text-sm font-semibold text-amber">
-                      <AlertTriangle size={16} />
-                      Trust philosophy
-                    </p>
-                    <p className="mt-2 text-sm leading-6 text-frost/70">
-                      A recovered proof shows source evidence. It does not prove that every claim is true,
-                      and a missing proof does not prove that the content is fake.
-                    </p>
-                  </div>
-                </div>
-                <div className="rounded-md border border-white/10 bg-void/55 p-4">
-                  <p className="flex items-center gap-2 text-sm font-semibold text-frost">
-                    <LinkIcon size={16} />
-                    Demo path
-                  </p>
-                  <ol className="mt-3 grid gap-3 text-sm text-frost/68">
-                    <li>1. Seal the official poster as the trusted source.</li>
-                    <li>2. Recover it from the exact file for a deterministic match.</li>
-                    <li>3. Scan a screenshot or edited copy to see what changed.</li>
-                    <li>4. Open the proof page before sharing or acting.</li>
-                  </ol>
-                </div>
+          <div className={panelClass()}>
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_240px]">
+              <div>
+                <p className="flex items-center gap-2 text-sm font-semibold text-amber">
+                  <AlertTriangle size={16} />
+                  Trust guardrail
+                </p>
+                <p className="mt-2 text-sm leading-6 text-frost/68">
+                  ContentSeal recovers source evidence and explains uncertainty. It does not claim a file is
+                  true, fake, or human-made purely from metadata or AI-classifier output.
+                </p>
+              </div>
+              <div className="grid gap-2">
+                <a className="inline-flex items-center gap-2 text-sm font-semibold text-pulse" href="/demo">
+                  <LinkIcon size={16} />
+                  Open demo lab
+                </a>
+                <a className="inline-flex items-center gap-2 text-sm font-semibold text-wire" href="/history">
+                  <ListChecks size={16} />
+                  Open proof history
+                </a>
               </div>
             </div>
-          ) : null}
+          </div>
         </section>
       </section>
     </main>

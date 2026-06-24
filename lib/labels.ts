@@ -8,8 +8,8 @@ import type {
 
 export const TRUST_LABEL_COPY: Record<TrustLabel, string> = {
   verified_original: "Verified Original",
-  modified_copy: "Modified Copy",
-  screenshot_repost_match: "Screenshot / Repost Match",
+  modified_copy: "Changed Copy Risk",
+  screenshot_repost_match: "Source Recovered From Screenshot",
   expired_content: "Verified Previous Version / Expired",
   older_verified_version: "Older Verified Version",
   no_verified_origin_found: "No Verified Origin Found",

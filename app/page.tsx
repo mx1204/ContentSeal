@@ -4,6 +4,7 @@ import {
   Binary,
   CalendarClock,
   Database,
+  FileText,
   Fingerprint,
   Link as LinkIcon,
   ScanLine,
@@ -16,6 +17,7 @@ const trustSignals = [
   "Exact original match",
   "Screenshot recovery",
   "Crop and compression tolerance",
+  "AI evidence explanation",
   "OCR conflict warning",
   "Proof lifecycle status",
   "Human-accountable issuer"
@@ -41,6 +43,12 @@ const routes = [
     icon: Database
   },
   {
+    href: "/history",
+    title: "Proof History",
+    text: "Manage receipts, open proof pages, and delete proofs without cluttering the scan workflow.",
+    icon: FileText
+  },
+  {
     href: "/demo",
     title: "Demo Cases",
     text: "Run the pitch story: original source, screenshot/repost, edited copy, unknown image, and deletion.",
@@ -56,7 +64,7 @@ export default function Home() {
       <InteractiveProofHero />
 
       <section className="border-b border-white/10 bg-graphite">
-        <div className="mx-auto grid max-w-7xl gap-4 px-4 py-8 sm:grid-cols-2 sm:px-6 lg:grid-cols-6 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-4 px-4 py-8 sm:grid-cols-2 sm:px-6 lg:grid-cols-7 lg:px-8">
           {trustSignals.map((signal) => (
             <div className="flex items-center gap-2 rounded-md border border-white/10 bg-void/45 px-3 py-3" key={signal}>
               <BadgeCheck className="text-pulse" size={16} />
@@ -81,7 +89,7 @@ export default function Home() {
             </a>
           </div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             {routes.map((route) => {
               const Icon = route.icon;
               return (
@@ -145,7 +153,7 @@ export default function Home() {
               src="/demo/assets/03-screenshot-repost.png"
             />
             <div className="mt-3 grid gap-2 rounded-md bg-white/8 p-4">
-              <p className="text-sm font-semibold text-wire">Screenshot / Repost Match</p>
+              <p className="text-sm font-semibold text-wire">Source Recovered From Screenshot</p>
               <p className="text-sm leading-6 text-frost/70">
                 Visually related to a known proof receipt, but not the original file. Metadata is gone,
                 so users should open the recovered proof page before resharing.

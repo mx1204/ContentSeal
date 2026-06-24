@@ -39,7 +39,7 @@ Run `npm run demo:assets` again only when you want to regenerate the determinist
 5. Click `Create Proof Receipt`.
 6. Go to `Recover Source`.
 7. Upload the same image. Expected result: `Verified Original`.
-8. Upload a visually similar edited or reposted image. Expected result: `Modified Copy`, `Screenshot / Repost Match`, or `Conflicting Signals`, depending on the signals.
+8. Upload a visually similar edited or reposted image. Expected result: `Changed Copy Risk`, `Source Recovered From Screenshot`, or `Conflicting Signals`, depending on the signals.
 9. Paste a direct public image URL in `Recover Source` to scan without saving the file first. Local/private URLs are blocked.
 10. Delete the proof from the proof list if you want to show that future scans no longer match it.
 
@@ -48,8 +48,8 @@ Run `npm run demo:assets` again only when you want to regenerate the determinist
 The deterministic fixture files live in `demo/assets/`:
 
 - `01-original-proof.png`: create the proof first, then scan it. Expected: `Verified Original`.
-- `02-edited-copy.png`: scan after the original proof exists. Expected: `Modified Copy` or `Conflicting Signals`.
-- `03-screenshot-repost.png`: scan after the original proof exists. Expected: `Screenshot / Repost Match`.
+- `02-edited-copy.png`: scan after the original proof exists. Expected: `Changed Copy Risk` or `Conflicting Signals`.
+- `03-screenshot-repost.png`: scan after the original proof exists. Expected: `Source Recovered From Screenshot`.
 - `04-unknown-ai-style.png`: scan without a matching proof. Expected: `No Verified Origin Found`.
 
 The `/demo` page also shows these fixtures and the recommended pitch order.
@@ -86,13 +86,15 @@ Do not commit the Firebase service account JSON or `.env.local`.
 3. In `Recover Source`, upload `demo/assets/01-original-proof.png`.
    Expected: `Verified Original`.
 4. Upload `demo/assets/03-screenshot-repost.png`.
-   Expected: `Screenshot / Repost Match`, proving source recovery after metadata loss.
+   Expected: `Source Recovered From Screenshot`, proving source recovery after metadata loss.
 5. Upload `demo/assets/02-edited-copy.png`.
-   Expected: `Modified Copy` or `Conflicting Signals`, proving changed-copy warning.
+   Expected: `Changed Copy Risk` or `Conflicting Signals`, proving changed-copy warning.
 6. Upload `demo/assets/04-unknown-ai-style.png`.
    Expected: `No Verified Origin Found`.
 
 The scan flow also accepts any JPEG, PNG, WebP, or AVIF image saved from a website or device, plus direct public image URLs. If no matching proof receipt exists, the correct outcome is an accountable unknown state, not a fake verdict.
+
+Verification results now include an `AI Evidence Layer`. It explains four separate questions: whether a source was recovered, whether a human or organisation is accountable, what AI/synthetic context is available, and whether the uploaded copy has change risk. This layer explains evidence; it does not replace the proof receipt or make a truth/fake verdict.
 
 ## Commands
 

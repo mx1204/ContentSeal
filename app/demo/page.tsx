@@ -22,7 +22,7 @@ const cases = [
   },
   {
     title: "Edited Copy",
-    result: "Modified Copy / Conflicting Signals",
+    result: "Changed Copy Risk / Conflicting Signals",
     image: "/demo/assets/02-edited-copy.png",
     file: "demo/assets/02-edited-copy.png",
     command: "Scan after the original source has been sealed",
@@ -31,7 +31,7 @@ const cases = [
   },
   {
     title: "Screenshot Repost",
-    result: "Screenshot / Repost Match",
+    result: "Source Recovered From Screenshot",
     image: "/demo/assets/03-screenshot-repost.png",
     file: "demo/assets/03-screenshot-repost.png",
     command: "Scan a screenshot, crop, repost, or compressed copy",

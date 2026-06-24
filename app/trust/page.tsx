@@ -7,7 +7,8 @@ import {
   Fingerprint,
   GitBranch,
   ScanLine,
-  ShieldCheck
+  ShieldCheck,
+  Sparkles
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 
@@ -28,7 +29,12 @@ const pipeline = [
     icon: Binary
   },
   {
-    title: "Difference layer",
+    title: "AI evidence layer",
+    text: "Explain source recovery, human accountability, synthetic-media context, and change risk without pretending it is a truth detector.",
+    icon: Sparkles
+  },
+  {
+    title: "Difference signals",
     text: "Check metadata loss, OCR conflict, C2PA, watermark, classifier, status, and version signals separately.",
     icon: GitBranch
   },
@@ -41,8 +47,8 @@ const pipeline = [
 
 const labels = [
   ["Verified Original", "Exact file hash matches an active proof receipt."],
-  ["Modified Copy", "A source was recovered visually, but the uploaded file differs from the sealed original."],
-  ["Screenshot / Repost Match", "A source was recovered after screenshot, crop, repost, compression, or metadata loss."],
+  ["Changed Copy Risk", "A source was recovered visually, but the uploaded file differs from the sealed original."],
+  ["Source Recovered From Screenshot", "A source was recovered after screenshot, crop, repost, compression, or metadata loss."],
   ["Expired Content", "The receipt was valid before, but should not be treated as current."],
   ["Older Verified Version", "A known receipt exists, but a newer version should be checked."],
   ["No Verified Origin Found", "No matching proof receipt was found. This does not prove the content is fake."],
@@ -67,7 +73,7 @@ export default function TrustPage() {
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 lg:grid-cols-5">
+          <div className="mt-10 grid gap-4 lg:grid-cols-6">
             {pipeline.map((step, index) => {
               const Icon = step.icon;
               return (

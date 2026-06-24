@@ -7,7 +7,14 @@ if (!response.ok) {
 }
 
 const html = await response.text();
-for (const expected of ["ContentSeal", "Seal Source", "Recover Source", "Screenshot provenance recovery"]) {
+for (const expected of [
+  "ContentSeal",
+  "Seal Source",
+  "Recover Source",
+  "History",
+  "AI evidence explanation",
+  "Screenshot provenance recovery"
+]) {
   if (!html.includes(expected)) {
     throw new Error(`Expected rendered UI to contain "${expected}"`);
   }
