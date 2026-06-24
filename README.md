@@ -96,6 +96,24 @@ The scan flow also accepts any JPEG, PNG, WebP, or AVIF image saved from a websi
 
 Verification results now include an `AI Evidence Layer`. It explains four separate questions: whether a source was recovered, whether a human or organisation is accountable, what AI/synthetic context is available, and whether the uploaded copy has change risk. This layer explains evidence; it does not replace the proof receipt or make a truth/fake verdict.
 
+## Pitch And Submission Materials
+
+For a 3-minute on-stage pitch, use the slide deck and explain the product workflow instead of running a live upload demo on the event computer. The live demo is useful for judges and teammates after the pitch, but the pitch itself should stay focused on the bottleneck: screenshots and reposts remove provenance context, and ContentSeal recovers an accountable source when possible.
+
+- Pitch deck: `outputs/ContentSeal_Pitch_Deck.pptx`
+- Devpost / YouTube copy: `submission/contentseal-submission-copy.md`
+- 3-minute pitch script: `submission/contentseal-3min-pitch-script.md`
+- Devpost image gallery candidates: `outputs/pitch-deck-preview/`
+
+Do not run a full live upload demo during a 3-minute pitch. Use the deck to explain the workflow and point judges to the recorded demo or live site afterward. If a live check is requested on an event computer, use the public fixture URLs below in `Recover Source` so the computer does not need local test files:
+
+- `https://contentseal.vercel.app/demo/assets/01-original-proof.png`
+- `https://contentseal.vercel.app/demo/assets/03-screenshot-repost.png`
+- `https://contentseal.vercel.app/demo/assets/02-edited-copy.png`
+- `https://contentseal.vercel.app/demo/assets/04-unknown-ai-style.png`
+
+For a clean live check, create or keep one proof receipt for the original fixture before the pitch, then paste the fixture URLs into `Recover Source`.
+
 ## Commands
 
 ```powershell

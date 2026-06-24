@@ -21,7 +21,14 @@ pnpm-debug.log*
 *.err
 .npm-cache/
 
+# Large generated demo recordings should live on YouTube/Devpost, not in git.
+*.mp4
+
 *.tsbuildinfo
 *.traineddata
+
+# Generated slide inspection data. Keep the final deck and selected PNG media.
+outputs/**/*.inspect.ndjson
+outputs/**/*.layout.json
 
 .vercel
