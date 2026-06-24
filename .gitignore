@@ -24,9 +24,13 @@ pnpm-debug.log*
 # Large generated demo recordings should live on YouTube/Devpost, not in git.
 *.mp4
 
+# Microsoft Office lock/temp files.
+~$*.pptx
+~$*.docx
+
 # Local pitch notes and voiceover scripts are useful during submission prep,
 # but should not be pushed as repo artifacts.
-submission/*.md
+submission/
 
 *.tsbuildinfo
 *.traineddata
