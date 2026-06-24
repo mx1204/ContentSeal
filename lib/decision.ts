@@ -41,7 +41,7 @@ function effectiveProofStatus(receipt: ReceiptSummary | null) {
   return receipt.proofStatus ?? "active";
 }
 
-function hasScreenshotShapeChange(analysis: MediaAnalysis, receipt: ReceiptSummary | null) {
+function hasScreenshotTransformSignal(analysis: MediaAnalysis, receipt: ReceiptSummary | null) {
   if (!receipt?.width || !receipt.height || !analysis.metadata.width || !analysis.metadata.height) {
     return analysis.metadata.status === "missing";
   }
@@ -51,8 +51,15 @@ function hasScreenshotShapeChange(analysis: MediaAnalysis, receipt: ReceiptSumma
   const ratioDelta = Math.abs(uploadedRatio - receiptRatio);
   const widthDelta = Math.abs(analysis.metadata.width - receipt.width);
   const heightDelta = Math.abs(analysis.metadata.height - receipt.height);
+  const densitySignal = typeof analysis.metadata.density === "number" && analysis.metadata.density >= 140;
+  const anyDimensionChange = widthDelta > 8 || heightDelta > 8;
 
-  return ratioDelta > 0.08 || widthDelta > 90 || heightDelta > 90;
+  return (
+    ratioDelta > 0.01 ||
+    widthDelta > 24 ||
+    heightDelta > 24 ||
+    (anyDimensionChange && (densitySignal || analysis.metadata.status === "missing"))
+  );
 }
 
 export function classifyAiSignal(input: {
@@ -81,12 +88,12 @@ export function buildDecision(input: {
   const ocrConflict =
     Boolean(strongVisualMatch && matchedAssetOcrText) &&
     isMaterialOcrConflict(matchedAssetOcrText ?? "", analysis.ocrText);
-  const screenshotLikeShapeChange = hasScreenshotShapeChange(analysis, matchedReceipt);
+  const screenshotTransformSignal = hasScreenshotTransformSignal(analysis, matchedReceipt);
   const screenshotRecoverySignal =
     strongVisualMatch &&
     !exactReceipt &&
     !ocrConflict &&
-    (screenshotLikeShapeChange || hasScreenshotOrPlatformMetadata(analysis.metadata));
+    (screenshotTransformSignal || hasScreenshotOrPlatformMetadata(analysis.metadata));
 
   const editSignal =
     hasEditSoftwareSignal(analysis.metadata) ||

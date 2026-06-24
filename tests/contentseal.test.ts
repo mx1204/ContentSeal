@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { beforeEach, describe, expect, it } from "vitest";
 import sharp from "sharp";
 import {
@@ -16,6 +17,10 @@ import type { MediaAnalysis, ReceiptSummary, VerificationEvidence } from "@/lib/
 
 async function imageFromSvg(svg: string) {
   return sharp(Buffer.from(svg)).png().toBuffer();
+}
+
+async function demoAsset(name: string) {
+  return readFile(new URL(`../demo/assets/${name}`, import.meta.url));
 }
 
 async function proofPoster() {
@@ -248,6 +253,42 @@ describe("ContentSeal media detection", () => {
 
     expect(decision.trustLabel).toBe("modified_copy");
     expect(decision.badges).toContain("edit_signal_found");
+  });
+
+  it("recovers a real cropped screenshot fixture without hiding edited-copy risk", async () => {
+    const original = await demoAsset("01-original-proof.png");
+    const proofAnalysis = await analyseAndStoreMedia({
+      buffer: original,
+      mimeType: "image/png",
+      originalName: "01-original-proof.png"
+    });
+    insertProofReceipt({
+      title: "Official ContentSeal Summit Poster",
+      creatorClaim: "ContentSeal Events Team",
+      mediaId: proofAnalysis.mediaId ?? ""
+    });
+
+    const screenshotAnalysis = await analyseAndStoreMedia({
+      buffer: await demoAsset("01-screenshot-repost.png"),
+      mimeType: "image/png",
+      originalName: "01-screenshot-repost.png"
+    });
+    const screenshotVerification = await verifyAnalysis(screenshotAnalysis);
+
+    expect(screenshotVerification.exact_hash_match).toBe(false);
+    expect(screenshotVerification.similarity_score).toBeGreaterThanOrEqual(0.85);
+    expect(screenshotVerification.trust_label).toBe("screenshot_repost_match");
+
+    const editedAnalysis = await analyseAndStoreMedia({
+      buffer: await demoAsset("02-edited-copy.png"),
+      mimeType: "image/png",
+      originalName: "02-edited-copy.png"
+    });
+    const editedVerification = await verifyAnalysis(editedAnalysis);
+
+    expect(editedVerification.exact_hash_match).toBe(false);
+    expect(editedVerification.similarity_score).toBeGreaterThanOrEqual(0.85);
+    expect(editedVerification.trust_label).toBe("modified_copy");
   });
 
   it("matches screenshot-style padding with receipt-aspect center crop", async () => {
