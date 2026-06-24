@@ -179,6 +179,11 @@ export interface SimilarityMatch {
   receiptVariant: PHashVariant;
 }
 
+export interface PortableProofReceipt {
+  receipt: ReceiptSummary;
+  pHashes: PHashResult[];
+}
+
 export interface VerificationEvidence {
   exactHashMatch: boolean;
   visualSimilarityScore: number | null;

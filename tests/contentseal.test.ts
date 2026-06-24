@@ -295,4 +295,38 @@ describe("ContentSeal media detection", () => {
     expect(verification.trust_label).toBe("no_verified_origin_found");
     expect(verification.matched_receipt_id).toBeNull();
   });
+
+  it("verifies against portable proof receipts when server receipts are unavailable", async () => {
+    const original = await proofPoster();
+    const proofAnalysis = await analyseAndStoreMedia({
+      buffer: original,
+      mimeType: "image/png",
+      originalName: "poster.png"
+    });
+    const receiptId = insertProofReceipt({
+      title: "ContentSeal Summit",
+      creatorClaim: "ContentSeal Team",
+      mediaId: proofAnalysis.mediaId ?? ""
+    });
+    const portableReceipt = getReceipt(receiptId);
+    expect(portableReceipt).toBeTruthy();
+
+    resetDatabaseForTests();
+
+    const uploadedAnalysis = await analyseAndStoreMedia({
+      buffer: original,
+      mimeType: "image/png",
+      originalName: "poster-portable.png"
+    });
+    const verification = await verifyAnalysis(uploadedAnalysis, [
+      {
+        receipt: portableReceipt!,
+        pHashes: proofAnalysis.pHashes
+      }
+    ]);
+
+    expect(verification.trust_label).toBe("verified_original");
+    expect(verification.matched_receipt_id).toBe(receiptId);
+    expect(verification.exact_hash_match).toBe(true);
+  });
 });

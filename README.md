@@ -20,6 +20,15 @@ Use port `3101` for this project so it does not collide with another local app o
 
 You do not need to deploy to Vercel for local testing. Deploy only when you need a public URL for judges, teammates, or external testers.
 
+## Vercel Preview Notes
+
+The Vercel deployment is useful for teammate testing, but it does not provision a persistent database by default.
+
+- Runtime files are written to `/tmp/contentseal` on Vercel because the deployment bundle is read-only.
+- Created proof fingerprints are also saved in the browser's localStorage.
+- In the same browser session, a teammate can create a proof, scan the same or modified image, delete the proof, and open the proof page.
+- Browser-local proof cache is for preview testing only. For a production multi-user system, replace the local SQLite/filesystem runtime with persistent storage such as Postgres plus object storage.
+
 ## Demo Flow
 
 1. In `Create Proof`, click `Load Demo`.

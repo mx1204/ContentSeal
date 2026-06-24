@@ -67,6 +67,13 @@ interface ProofResponse {
   receipt: Receipt;
 }
 
+interface ClientStoredProof {
+  receipt: Receipt;
+  pHashes: ProofResponse["perceptual_hashes"];
+  previewDataUrl?: string;
+  storedAt: string;
+}
+
 interface VerificationResponse {
   trust_label: TrustLabel;
   matched_receipt_id: string | null;
@@ -131,6 +138,89 @@ const demoCases = [
     src: "/demo/assets/03-screenshot-repost.png"
   }
 ];
+
+const clientProofsStorageKey = "contentseal.clientProofs.v1";
+const maxClientPreviewBytes = 1_500_000;
+
+function readClientProofs(): ClientStoredProof[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(clientProofsStorageKey) ?? "[]") as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.filter((item): item is ClientStoredProof => {
+      if (typeof item !== "object" || item === null) {
+        return false;
+      }
+      const proof = item as Partial<ClientStoredProof>;
+      return Boolean(proof.receipt?.id && proof.receipt.sha256 && Array.isArray(proof.pHashes));
+    });
+  } catch {
+    return [];
+  }
+}
+
+function writeClientProofs(proofs: ClientStoredProof[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(clientProofsStorageKey, JSON.stringify(proofs.slice(0, 50)));
+}
+
+function mergeReceipts(serverReceipts: Receipt[]) {
+  const receiptsById = new Map<string, Receipt>();
+  for (const proof of readClientProofs()) {
+    receiptsById.set(proof.receipt.id, proof.receipt);
+  }
+  for (const receipt of serverReceipts) {
+    receiptsById.set(receipt.id, receipt);
+  }
+  return Array.from(receiptsById.values()).sort(
+    (left, right) =>
+      new Date(right.proofCreatedAt).getTime() - new Date(left.proofCreatedAt).getTime()
+  );
+}
+
+function clientProofPayload() {
+  return JSON.stringify(
+    readClientProofs().map((proof) => ({
+      receipt: proof.receipt,
+      pHashes: proof.pHashes
+    }))
+  );
+}
+
+function removeClientProof(receiptId: string) {
+  writeClientProofs(readClientProofs().filter((proof) => proof.receipt.id !== receiptId));
+}
+
+function saveClientProof(input: Omit<ClientStoredProof, "storedAt">) {
+  const existing = readClientProofs().filter((proof) => proof.receipt.id !== input.receipt.id);
+  writeClientProofs([
+    {
+      ...input,
+      storedAt: new Date().toISOString()
+    },
+    ...existing
+  ]);
+}
+
+function fileToPreviewDataUrl(file: File) {
+  if (file.size > maxClientPreviewBytes) {
+    return Promise.resolve(undefined);
+  }
+
+  return new Promise<string | undefined>((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : undefined);
+    reader.onerror = () => resolve(undefined);
+    reader.readAsDataURL(file);
+  });
+}
 
 function formatPercent(value: number | null) {
   if (value == null) {
@@ -355,8 +445,10 @@ export function ContentSealApp({
     const response = await fetch("/api/proofs", { cache: "no-store" });
     if (response.ok) {
       const data = (await response.json()) as { receipts: Receipt[] };
-      setReceipts(data.receipts);
+      setReceipts(mergeReceipts(data.receipts));
+      return;
     }
+    setReceipts(mergeReceipts([]));
   }
 
   useEffect(() => {
@@ -368,6 +460,7 @@ export function ContentSealApp({
     setProofResult(null);
     setIsCreating(true);
     try {
+      const uploadedFile = formData.get("file");
       const response = await fetch("/api/proofs", {
         method: "POST",
         body: formData
@@ -376,7 +469,14 @@ export function ContentSealApp({
       if (!response.ok) {
         throw new Error(data.error ?? "Proof creation failed.");
       }
-      setProofResult(data as ProofResponse);
+      const proofData = data as ProofResponse;
+      saveClientProof({
+        receipt: proofData.receipt,
+        pHashes: proofData.perceptual_hashes,
+        previewDataUrl:
+          uploadedFile instanceof File ? await fileToPreviewDataUrl(uploadedFile) : undefined
+      });
+      setProofResult(proofData);
       await refreshReceipts();
     } catch (error) {
       setProofError(error instanceof Error ? error.message : "Proof creation failed.");
@@ -390,6 +490,7 @@ export function ContentSealApp({
     setVerifyResult(null);
     setIsVerifying(true);
     try {
+      formData.set("client_proofs", clientProofPayload());
       const response = await fetch("/api/verify", {
         method: "POST",
         body: formData
@@ -422,9 +523,10 @@ export function ContentSealApp({
         method: "DELETE"
       });
       const data = await response.json();
-      if (!response.ok) {
+      if (!response.ok && response.status !== 404) {
         throw new Error(data.error ?? "Proof deletion failed.");
       }
+      removeClientProof(receipt.id);
       if (proofResult?.receipt.id === receipt.id) {
         setProofResult(null);
       }

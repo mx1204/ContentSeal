@@ -1,4 +1,7 @@
-import { notFound } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import {
   CalendarClock,
   ExternalLink,
@@ -8,11 +11,14 @@ import {
   ShieldCheck
 } from "lucide-react";
 import { AI_USAGE_COPY, CREATOR_TRUST_COPY, PROOF_STATUS_COPY } from "@/lib/labels";
-import { getReceipt } from "@/lib/db";
-import type { ProofStatus } from "@/lib/types";
+import type { ProofStatus, ReceiptSummary } from "@/lib/types";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+const clientProofsStorageKey = "contentseal.clientProofs.v1";
+
+interface ClientStoredProof {
+  receipt: ReceiptSummary;
+  previewDataUrl?: string;
+}
 
 function shortHash(hash: string) {
   return `${hash.slice(0, 16)}...${hash.slice(-12)}`;
@@ -26,6 +32,26 @@ function effectiveProofStatus(receipt: {
     return "expired";
   }
   return receipt.proofStatus ?? "active";
+}
+
+function readLocalProof(receiptId: string) {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(clientProofsStorageKey) ?? "[]") as unknown;
+    if (!Array.isArray(parsed)) {
+      return null;
+    }
+    return (
+      parsed.find((item): item is ClientStoredProof => {
+        if (typeof item !== "object" || item === null) {
+          return false;
+        }
+        const proof = item as Partial<ClientStoredProof>;
+        return proof.receipt?.id === receiptId;
+      }) ?? null
+    );
+  } catch {
+    return null;
+  }
 }
 
 function DetailRow({
@@ -45,15 +71,85 @@ function DetailRow({
   );
 }
 
-export default async function ProofPage({
-  params
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const receipt = getReceipt(id);
+export default function ProofPage() {
+  const params = useParams<{ id: string }>();
+  const receiptId = params.id;
+  const [receipt, setReceipt] = useState<ReceiptSummary | null>(null);
+  const [imageSrc, setImageSrc] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadReceipt() {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/proofs/${receiptId}`, { cache: "no-store" });
+        if (response.ok) {
+          const data = (await response.json()) as {
+            receipt: ReceiptSummary;
+            media_url: string;
+          };
+          if (!cancelled) {
+            setReceipt(data.receipt);
+            setImageSrc(data.media_url);
+          }
+          return;
+        }
+      } catch {
+        // Fall back to browser-local proofs below.
+      }
+
+      const localProof = readLocalProof(receiptId);
+      if (!cancelled && localProof) {
+        setReceipt(localProof.receipt);
+        setImageSrc(localProof.previewDataUrl ?? `/api/media/${localProof.receipt.mediaId}`);
+      }
+      if (!cancelled) {
+        setIsLoading(false);
+      }
+    }
+
+    void loadReceipt().finally(() => {
+      if (!cancelled) {
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [receiptId]);
+
+  if (isLoading) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-paper px-4 text-ink">
+        <p className="rounded-md border border-ink/10 bg-white px-4 py-3 text-sm font-medium">
+          Loading proof receipt...
+        </p>
+      </main>
+    );
+  }
+
   if (!receipt) {
-    notFound();
+    return (
+      <main className="grid min-h-screen place-items-center bg-paper px-4 text-ink">
+        <div className="max-w-md rounded-lg border border-ink/10 bg-white p-6 text-center shadow-sm">
+          <FileText className="mx-auto text-moss" size={28} />
+          <h1 className="mt-4 text-2xl font-semibold">Proof receipt not found</h1>
+          <p className="mt-2 text-sm leading-6 text-ink/65">
+            This deployment uses browser-local proof cache for preview testing. Create a proof in this
+            browser first, then open the proof page again.
+          </p>
+          <a
+            className="mt-5 inline-flex min-h-10 items-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white"
+            href="/create"
+          >
+            Create proof
+          </a>
+        </div>
+      </main>
+    );
   }
 
   const status = effectiveProofStatus(receipt);
@@ -161,11 +257,11 @@ export default async function ProofPage({
 
           <aside className="rounded-md bg-ink/5 p-3">
             <div className="grid h-80 place-items-center overflow-hidden rounded-md bg-white">
-              <img
-                alt={receipt.title}
-                className="h-full w-full object-contain"
-                src={`/api/media/${receipt.mediaId}`}
-              />
+              {imageSrc ? (
+                <img alt={receipt.title} className="h-full w-full object-contain" src={imageSrc} />
+              ) : (
+                <p className="px-4 text-center text-sm text-ink/55">Media preview is not available.</p>
+              )}
             </div>
             {receipt.warningNote ? (
               <p className="mt-3 rounded-md border border-clay/20 bg-clay/10 px-3 py-2 text-sm font-medium text-clay">

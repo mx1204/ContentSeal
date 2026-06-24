@@ -2,8 +2,9 @@ import path from "node:path";
 import { mkdir } from "node:fs/promises";
 
 export const rootDir = process.cwd();
-export const dataDir = path.join(rootDir, "data");
-export const storageDir = path.join(rootDir, "storage");
+export const runtimeRootDir = process.env.VERCEL ? path.join("/tmp", "contentseal") : rootDir;
+export const dataDir = path.join(runtimeRootDir, "data");
+export const storageDir = path.join(runtimeRootDir, "storage");
 export const mediaStorageDir = path.join(storageDir, "media");
 
 export async function ensureRuntimeDirs() {

@@ -11,7 +11,12 @@ import {
 import { buildDecision } from "./decision";
 import { computePHash, phashSimilarity } from "./phash";
 import { generateTrustCard } from "./trust-card";
-import type { MediaAnalysis, SimilarityMatch, VerificationResult } from "./types";
+import type {
+  MediaAnalysis,
+  PortableProofReceipt,
+  SimilarityMatch,
+  VerificationResult
+} from "./types";
 
 function receiptAspectRatio(match: SimilarityMatch) {
   const width = match.receipt.width;
@@ -60,7 +65,35 @@ async function improveWithReceiptAspectCrop(
   }
 }
 
-export async function findBestVisualMatch(analysis: MediaAnalysis): Promise<SimilarityMatch | null> {
+function findBestPortableVisualMatch(
+  analysis: MediaAnalysis,
+  portableProofs: PortableProofReceipt[]
+): SimilarityMatch | null {
+  let best: SimilarityMatch | null = null;
+
+  for (const uploadedHash of analysis.pHashes) {
+    for (const proof of portableProofs) {
+      for (const storedHash of proof.pHashes) {
+        const score = phashSimilarity(uploadedHash.hash, storedHash.hash);
+        if (!best || score > best.score) {
+          best = {
+            receipt: proof.receipt,
+            score,
+            uploadedVariant: uploadedHash.variant,
+            receiptVariant: storedHash.variant
+          };
+        }
+      }
+    }
+  }
+
+  return best;
+}
+
+export async function findBestVisualMatch(
+  analysis: MediaAnalysis,
+  portableProofs: PortableProofReceipt[] = []
+): Promise<SimilarityMatch | null> {
   let best: SimilarityMatch | null = null;
   const receiptHashes = getAllReceiptPHashes();
 
@@ -82,18 +115,32 @@ export async function findBestVisualMatch(analysis: MediaAnalysis): Promise<Simi
     }
   }
 
+  const portableBest = findBestPortableVisualMatch(analysis, portableProofs);
+  if (portableBest && (!best || portableBest.score > best.score)) {
+    best = portableBest;
+  }
+
   return improveWithReceiptAspectCrop(analysis, best);
 }
 
-export async function verifyAnalysis(analysis: MediaAnalysis): Promise<VerificationResult> {
-  const exactReceipt = findReceiptByHash(analysis.sha256);
-  const visualMatch = exactReceipt ? null : await findBestVisualMatch(analysis);
+function findPortableReceiptByHash(sha: string, portableProofs: PortableProofReceipt[]) {
+  return portableProofs.find((proof) => proof.receipt.sha256 === sha)?.receipt ?? null;
+}
+
+export async function verifyAnalysis(
+  analysis: MediaAnalysis,
+  portableProofs: PortableProofReceipt[] = []
+): Promise<VerificationResult> {
+  const exactReceipt = findReceiptByHash(analysis.sha256) ?? findPortableReceiptByHash(analysis.sha256, portableProofs);
+  const visualMatch = exactReceipt ? null : await findBestVisualMatch(analysis, portableProofs);
   const decision = buildDecision({ analysis, exactReceipt, visualMatch });
   const card = generateTrustCard(decision.evidence);
+  const matchedReceiptId = decision.evidence.matchedReceipt?.id ?? null;
+  const matchedReceiptIdForStorage = matchedReceiptId && getReceipt(matchedReceiptId) ? matchedReceiptId : null;
   const verificationId = withDbTransaction(() => {
     const insertedVerificationId = insertVerification({
       analysisId: analysis.id,
-      matchedReceiptId: decision.evidence.matchedReceipt?.id ?? null,
+      matchedReceiptId: matchedReceiptIdForStorage,
       exactHashMatch: decision.evidence.exactHashMatch,
       similarityScore: decision.evidence.visualSimilarityScore,
       trustLabel: decision.trustLabel,
@@ -113,7 +160,7 @@ export async function verifyAnalysis(analysis: MediaAnalysis): Promise<Verificat
   return {
     id: verificationId,
     trust_label: decision.trustLabel,
-    matched_receipt_id: decision.evidence.matchedReceipt?.id ?? null,
+    matched_receipt_id: matchedReceiptId,
     exact_hash_match: decision.evidence.exactHashMatch,
     similarity_score: decision.evidence.visualSimilarityScore,
     badges: decision.badges,
