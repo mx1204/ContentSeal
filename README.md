@@ -6,7 +6,15 @@ ContentSeal is an image-first provenance verification demo for the A2 challenge:
 
 The app lets a creator issue a local proof receipt for an original image, then lets anyone scan a saved web image, screenshot, repost, edited copy, or unknown visual against those receipts. It combines deterministic signals, weak provenance signals, human accountability context, and a guarded Content Trust Card. It does not claim that content is true or fake.
 
-## Quick Start
+## Live Site
+
+Use the public Vercel deployment when teammates, reviewers, or external testers need to try the product:
+
+[https://contentseal.vercel.app](https://contentseal.vercel.app)
+
+For the current preview deployment, create and verify proofs in the same browser. Vercel does not provide the project with a persistent database by default, so preview proofs are also kept in browser localStorage.
+
+## Run Locally
 
 ```powershell
 npm install
@@ -18,7 +26,32 @@ Open [http://127.0.0.1:3101](http://127.0.0.1:3101).
 
 Use port `3101` for this project so it does not collide with another local app on `3000`.
 
-You do not need to deploy to Vercel for local testing. Deploy only when you need a public URL for judges, teammates, or external testers.
+Run `npm run demo:assets` again only when you want to regenerate the deterministic test images.
+
+## How To Test The Website
+
+### On Vercel
+
+1. Open [https://contentseal.vercel.app](https://contentseal.vercel.app).
+2. Go to `Create Proof`.
+3. Upload an original PNG, JPEG, WebP, or AVIF image. For the planned demo path, use `demo/assets/01-original-proof.png` from this repo when testing locally, or use any image saved from your device on the deployed site.
+4. Fill the required proof fields, or click `Load Demo` to prefill a realistic receipt.
+5. Click `Create Proof Receipt`.
+6. Go to `Verify`.
+7. Upload the same image. Expected result: `Verified Original`.
+8. Upload a visually similar edited or reposted image. Expected result: `Modified Copy`, `Screenshot / Repost Match`, or `Conflicting Signals`, depending on the signals.
+9. Delete the proof from the proof list if you want to show that future scans no longer match it.
+
+### With Demo Fixtures
+
+The deterministic fixture files live in `demo/assets/`:
+
+- `01-original-proof.png`: create the proof first, then scan it. Expected: `Verified Original`.
+- `02-edited-copy.png`: scan after the original proof exists. Expected: `Modified Copy` or `Conflicting Signals`.
+- `03-screenshot-repost.png`: scan after the original proof exists. Expected: `Screenshot / Repost Match`.
+- `04-unknown-ai-style.png`: scan without a matching proof. Expected: `No Verified Origin Found`.
+
+The `/demo` page also shows these fixtures and the recommended pitch order.
 
 ## Vercel Preview Notes
 
@@ -28,6 +61,7 @@ The Vercel deployment is useful for teammate testing, but it does not provision 
 - Created proof fingerprints are also saved in the browser's localStorage.
 - In the same browser session, a teammate can create a proof, scan the same or modified image, delete the proof, and open the proof page.
 - Browser-local proof cache is for preview testing only. For a production multi-user system, replace the local SQLite/filesystem runtime with persistent storage such as Postgres plus object storage.
+- Deploy again after public-facing code changes with `npx vercel deploy --prod --yes`.
 
 ## Demo Flow
 
@@ -57,6 +91,12 @@ npm run runtime:reset
 
 ```powershell
 $env:CONTENTSEAL_BASE_URL="http://127.0.0.1:3101"; npm run smoke:ui
+```
+
+To smoke-test the public deployment from PowerShell:
+
+```powershell
+$env:CONTENTSEAL_BASE_URL="https://contentseal.vercel.app"; npm run smoke:ui
 ```
 
 `npm run runtime:reset` removes local `data/` and `storage/` runtime state. Use it between demos when you want a clean proof database.

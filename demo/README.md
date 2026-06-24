@@ -1,6 +1,12 @@
 # ContentSeal Demo Assets
 
-Run this command to generate the sample images:
+Use the live site for teammate testing:
+
+[https://contentseal.vercel.app](https://contentseal.vercel.app)
+
+The deployed `/demo` page shows the fixture gallery. For local testing, the upload-ready files live in `demo/assets/`.
+
+Run this command only when you want to regenerate the sample images locally:
 
 ```powershell
 npm run demo:assets
@@ -15,10 +21,12 @@ Generated files:
 
 Recommended pitch path:
 
-1. Click `Load Demo` in `Create Proof`, then choose `01-original-proof.png`.
+1. Click `Load Demo` in `Create Proof`, then choose `01-original-proof.png` when testing locally, or upload any original image on Vercel.
 2. Scan `01-original-proof.png` to show a verified original.
 3. Scan `03-screenshot-repost.png` to show metadata loss with visual recovery.
 4. Scan `02-edited-copy.png` to show changed-file uncertainty.
 5. Delete the created proof receipt, then scan `01-original-proof.png` again to show that local proof deletion removes future matches.
+
+On Vercel preview, create and verify proofs in the same browser. The preview deployment stores proof fingerprints in browser localStorage because the default Vercel runtime does not include persistent project storage.
 
 To add mock C2PA, watermark, or classifier signals, copy `demo/mock-signals.example.json` to `data/mock-signals.json` and replace the key with the SHA-256 hash shown in the app.

@@ -50,7 +50,7 @@ const cases = [
 ];
 
 const labSteps = [
-  "Run demo:assets to regenerate deterministic fixtures.",
+  "Use the bundled fixtures here, or regenerate them locally with demo:assets.",
   "Create proof for 01-original-proof.png.",
   "Scan 01, 02, 03, and 04 in sequence.",
   "Use the Trust Engine page to explain the decision signals."
@@ -73,7 +73,7 @@ export default function DemoPage() {
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-frost/70">
               This page is a controlled test library for ContentSeal. Each image is a fixture with a
-              specific verification outcome, so judges can see exact-match proof, modified-copy
+              specific verification outcome, so teammates and reviewers can see exact-match proof, modified-copy
               warning, screenshot recovery, local proof deletion, and honest unknown handling.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -137,9 +137,8 @@ export default function DemoPage() {
             </p>
             <h2 className="mt-3 text-3xl font-semibold">Where the demo data lives</h2>
             <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/70">
-              The generator writes the same four PNG fixtures into a local upload folder and a public
-              preview folder. Use the local files for upload testing, and the public files for page
-              thumbnails.
+              The live demo includes public previews, while local testing can upload the files from
+              demo/assets. Regenerating fixtures rewrites both the upload files and the page previews.
             </p>
           </div>
 
@@ -147,7 +146,7 @@ export default function DemoPage() {
             <FileCheck2 className="text-moss" size={24} />
             <div className="mt-4 grid gap-3 text-sm">
               <p>
-                <span className="font-mono font-semibold">source:</span> demo/assets/*.png
+                <span className="font-mono font-semibold">local upload:</span> demo/assets/*.png
               </p>
               <p>
                 <span className="font-mono font-semibold">preview:</span> public/demo/assets/*.png
