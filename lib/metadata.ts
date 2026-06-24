@@ -127,14 +127,12 @@ export function hasEditSoftwareSignal(metadata: RedactedMetadata) {
 
 export function hasScreenshotOrPlatformMetadata(metadata: RedactedMetadata) {
   const software = metadata.software?.toLowerCase() ?? "";
-  const format = metadata.format?.toLowerCase() ?? "";
   return (
     metadata.status === "missing" ||
     software.includes("screenshot") ||
     software.includes("whatsapp") ||
     software.includes("instagram") ||
     software.includes("facebook") ||
-    software.includes("telegram") ||
-    format === "png"
+    software.includes("telegram")
   );
 }

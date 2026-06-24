@@ -222,6 +222,34 @@ describe("ContentSeal media detection", () => {
     expect(["modified_copy", "screenshot_repost_match"]).toContain(verification.trust_label);
   });
 
+  it("keeps same-size edited PNG copies out of screenshot recovery", () => {
+    const receipt = fakeReceipt();
+    const decision = buildDecision({
+      analysis: fakeAnalysis({
+        metadata: {
+          status: "partial",
+          format: "png",
+          width: 900,
+          height: 600,
+          sizeBytes: 10,
+          hasExif: true,
+          redactedFields: [],
+          publicFields: {}
+        }
+      }),
+      exactReceipt: null,
+      visualMatch: {
+        receipt,
+        score: 0.94,
+        uploadedVariant: "full",
+        receiptVariant: "full"
+      }
+    });
+
+    expect(decision.trustLabel).toBe("modified_copy");
+    expect(decision.badges).toContain("edit_signal_found");
+  });
+
   it("matches screenshot-style padding with receipt-aspect center crop", async () => {
     const original = await proofPoster();
     const proofAnalysis = await analyseAndStoreMedia({
