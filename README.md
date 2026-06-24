@@ -98,14 +98,12 @@ Verification results now include an `AI Evidence Layer`. It explains four separa
 
 ## Pitch And Submission Materials
 
-For a 3-minute on-stage pitch, use the slide deck and explain the product workflow instead of running a live upload demo on the event computer. The live demo is useful for judges and teammates after the pitch, but the pitch itself should stay focused on the bottleneck: screenshots and reposts remove provenance context, and ContentSeal recovers an accountable source when possible.
+For a 3-minute on-stage pitch, use the slide deck to show the product flow instead of running a live upload demo on the event computer. The live site is useful for judges and teammates after the pitch, but the pitch itself should stay focused on the bottleneck: screenshots and reposts remove provenance context, and ContentSeal recovers an accountable source when possible.
 
 - Pitch deck: `outputs/ContentSeal_Pitch_Deck.pptx`
-- Devpost / YouTube copy: `submission/contentseal-submission-copy.md`
-- 3-minute pitch script: `submission/contentseal-3min-pitch-script.md`
 - Devpost image gallery candidates: `outputs/pitch-deck-preview/`
 
-Do not run a full live upload demo during a 3-minute pitch. Use the deck to explain the workflow and point judges to the recorded demo or live site afterward. If a live check is requested on an event computer, use the public fixture URLs below in `Recover Source` so the computer does not need local test files:
+Do not run a full live upload demo during a 3-minute pitch. Use the deck to explain the product flow and point judges to the recorded demo or live site afterward. If a live check is requested on an event computer, use the public fixture URLs below in `Recover Source` so the computer does not need local test files:
 
 - `https://contentseal.vercel.app/demo/assets/01-original-proof.png`
 - `https://contentseal.vercel.app/demo/assets/03-screenshot-repost.png`
