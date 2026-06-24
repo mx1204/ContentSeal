@@ -4,7 +4,7 @@ ContentSeal is an image-first provenance verification demo for the A2 challenge:
 
 > Authenticity in a synthetic world -- how might we build lightweight provenance tools that help people verify what is real, human, and trustworthy?
 
-The app lets a creator issue a local proof receipt for an original image, then lets anyone scan a saved web image, screenshot, repost, edited copy, or unknown visual against those receipts. It combines deterministic signals, weak provenance signals, human accountability context, and a guarded Content Trust Card. It does not claim that content is true or fake.
+The app lets a creator issue a proof receipt for an original image, then lets anyone scan a saved web image, screenshot, repost, edited copy, or unknown visual against those receipts. It combines deterministic signals, weak provenance signals, human accountability context, and a guarded Content Trust Card. It does not claim that content is true or fake.
 
 ## Live Site
 
@@ -12,7 +12,7 @@ Use the public Vercel deployment when teammates, reviewers, or external testers 
 
 [https://contentseal.vercel.app](https://contentseal.vercel.app)
 
-For the current preview deployment, create and verify proofs in the same browser. Vercel does not provide the project with a persistent database by default, so preview proofs are also kept in browser localStorage.
+The deployed site uses Firebase-backed persistence when the required Firebase Admin environment variables are configured in Vercel. Browser localStorage is still used as a lightweight fallback cache for proof fingerprints.
 
 ## Run Locally
 
@@ -53,15 +53,30 @@ The deterministic fixture files live in `demo/assets/`:
 
 The `/demo` page also shows these fixtures and the recommended pitch order.
 
-## Vercel Preview Notes
+## Firebase And Vercel
 
-The Vercel deployment is useful for teammate testing, but it does not provision a persistent database by default.
+Production and preview deployments can use Firebase instead of the local SQLite/filesystem runtime.
 
-- Runtime files are written to `/tmp/contentseal` on Vercel because the deployment bundle is read-only.
-- Created proof fingerprints are also saved in the browser's localStorage.
-- In the same browser session, a teammate can create a proof, scan the same or modified image, delete the proof, and open the proof page.
-- Browser-local proof cache is for preview testing only. For a production multi-user system, replace the local SQLite/filesystem runtime with persistent storage such as Postgres plus object storage.
+- Firestore stores proof receipts, media analysis records, pHash variants, verification records, trust cards, and receipt events.
+- Firebase Storage stores uploaded media files when a Storage bucket is enabled.
+- If Firebase Storage is not available, the app still stores receipts, hashes, and compressed media previews in Firestore so verification can continue. Enable Storage for long-term original media retention.
+- Browser localStorage keeps a small proof fingerprint cache as a fallback, but Firebase is the shared persistence layer for teammate testing.
+- Vercel needs `CONTENTSEAL_STORAGE_BACKEND=firebase` plus the Firebase Admin variables below.
+- Current project note: Firebase Storage bucket creation is blocked until project billing/Storage setup is enabled, so `CONTENTSEAL_FIREBASE_STORAGE=disabled` uses Firestore compressed preview fallback.
 - Deploy again after public-facing code changes with `npx vercel deploy --prod --yes`.
+
+Required server environment variables:
+
+```env
+CONTENTSEAL_STORAGE_BACKEND=firebase
+CONTENTSEAL_FIREBASE_STORAGE=disabled
+FIREBASE_PROJECT_ID=contentseal-6c285
+FIREBASE_CLIENT_EMAIL=...
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FIREBASE_STORAGE_BUCKET=contentseal-6c285.firebasestorage.app
+```
+
+Do not commit the Firebase service account JSON or `.env.local`.
 
 ## Demo Flow
 
@@ -103,13 +118,14 @@ $env:CONTENTSEAL_BASE_URL="https://contentseal.vercel.app"; npm run smoke:ui
 
 ## Runtime Data
 
-- SQLite database: `data/contentseal.sqlite`
-- Uploaded media: `storage/media`
-- Both directories are ignored by git.
+- Local SQLite database: `data/contentseal.sqlite`
+- Local uploaded media: `storage/media`
+- Firebase production data: Firestore collections plus Firebase Storage objects
+- Local runtime directories and env files are ignored by git.
 
 Proof receipts can be deleted from the local UI. Deleting a proof removes its receipt, proof events, matching hash data, related verification/trust-card rows, and the original stored media file when it is safe to do so. After deletion, future scans will no longer match that proof.
 
-The app still keeps verification uploads for local inspection. For production, replace this with a retention policy that deletes verification-only uploads after analysis while preserving active proof receipt originals.
+The app still keeps verification uploads for inspection. For a stricter production policy, delete verification-only uploads after analysis while preserving active proof receipt originals.
 
 ## Mock Signals
 
@@ -137,4 +153,4 @@ You can still force OCR off with `CONTENTSEAL_DISABLE_OCR=1`. The old `ORIGINSEA
 
 - Supported uploads: JPEG, PNG, WebP, and AVIF up to 20 MB.
 - Video, audio, text, and deep forensic analysis are not implemented.
-- `node:sqlite` is used for local persistence and is still experimental in Node 24. Use Postgres or a stable SQLite package before production deployment.
+- Local fallback uses `node:sqlite`, which is still experimental in Node 24. Vercel production should use Firebase env variables instead of the local fallback.

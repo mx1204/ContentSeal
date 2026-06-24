@@ -1,4 +1,3 @@
-import { getAsset, getReceipt } from "./db";
 import { hasEditSoftwareSignal, hasScreenshotOrPlatformMetadata } from "./metadata";
 import { isMaterialOcrConflict } from "./ocr";
 import type {
@@ -59,15 +58,15 @@ export function buildDecision(input: {
   analysis: MediaAnalysis;
   exactReceipt: ReceiptSummary | null;
   visualMatch: SimilarityMatch | null;
+  matchedAssetOcrText?: string;
 }) {
-  const { analysis, exactReceipt, visualMatch } = input;
+  const { analysis, exactReceipt, visualMatch, matchedAssetOcrText } = input;
   const strongVisualMatch = Boolean(visualMatch && visualMatch.score >= 0.85);
   const possibleVisualMatch = Boolean(visualMatch && visualMatch.score >= 0.7);
   const matchedReceipt = exactReceipt ?? (possibleVisualMatch ? visualMatch?.receipt ?? null : null);
-  const matchedAsset = matchedReceipt ? getAsset(matchedReceipt.mediaId) : null;
   const ocrConflict =
-    Boolean(strongVisualMatch && matchedAsset) &&
-    isMaterialOcrConflict(matchedAsset?.ocrText ?? "", analysis.ocrText);
+    Boolean(strongVisualMatch && matchedAssetOcrText) &&
+    isMaterialOcrConflict(matchedAssetOcrText ?? "", analysis.ocrText);
 
   const editSignal =
     hasEditSoftwareSignal(analysis.metadata) ||

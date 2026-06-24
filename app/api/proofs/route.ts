@@ -7,7 +7,7 @@ import {
   uploadFileToBuffer,
   UnsupportedMediaError
 } from "@/lib/analysis";
-import { getReceipt, insertProofReceipt, listReceipts } from "@/lib/db";
+import { getReceiptStore, insertProofReceiptStore, listReceiptsStore } from "@/lib/store";
 import type { AiUsageDeclaration, CreatorTrustLevel, ProofStatus } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -29,7 +29,7 @@ function enumValue<T extends string>(formData: FormData, key: string, allowed: r
 
 export async function GET() {
   return NextResponse.json({
-    receipts: listReceipts()
+    receipts: await listReceiptsStore()
   });
 }
 
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       mimeType: file.type,
       originalName: file.name
     });
-    const receiptId = insertProofReceipt({
+    const receiptId = await insertProofReceiptStore({
       title,
       creatorClaim,
       creatorTrustLevel,
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
       proofStatus,
       mediaId: analysis.mediaId ?? ""
     });
-    const receipt = getReceipt(receiptId);
+    const receipt = await getReceiptStore(receiptId);
 
     return NextResponse.json(
       {

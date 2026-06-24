@@ -25,8 +25,8 @@ Recommended pitch path:
 2. Scan `01-original-proof.png` to show a verified original.
 3. Scan `03-screenshot-repost.png` to show metadata loss with visual recovery.
 4. Scan `02-edited-copy.png` to show changed-file uncertainty.
-5. Delete the created proof receipt, then scan `01-original-proof.png` again to show that local proof deletion removes future matches.
+5. Delete the created proof receipt, then scan `01-original-proof.png` again to show that proof deletion removes future matches.
 
-On Vercel preview, create and verify proofs in the same browser. The preview deployment stores proof fingerprints in browser localStorage because the default Vercel runtime does not include persistent project storage.
+On Vercel, Firebase-backed persistence lets teammates test receipts across browsers when the Firebase Admin environment variables are configured. Browser localStorage is only a lightweight fallback cache for proof fingerprints.
 
 To add mock C2PA, watermark, or classifier signals, copy `demo/mock-signals.example.json` to `data/mock-signals.json` and replace the key with the SHA-256 hash shown in the app.

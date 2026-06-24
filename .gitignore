@@ -10,6 +10,8 @@ storage/
 .env
 .env.local
 .env.*.local
+*-firebase-adminsdk-*.json
+firebase-service-account*.json
 
 npm-debug.log*
 yarn-debug.log*

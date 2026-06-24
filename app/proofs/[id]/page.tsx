@@ -97,7 +97,7 @@ export default function ProofPage() {
           return;
         }
       } catch {
-        // Fall back to browser-local proofs below.
+        // Fall back to the browser proof cache below.
       }
 
       const localProof = readLocalProof(receiptId);
@@ -138,8 +138,8 @@ export default function ProofPage() {
           <FileText className="mx-auto text-moss" size={28} />
           <h1 className="mt-4 text-2xl font-semibold">Proof receipt not found</h1>
           <p className="mt-2 text-sm leading-6 text-ink/65">
-            This deployment uses browser-local proof cache for preview testing. Create a proof in this
-            browser first, then open the proof page again.
+            This proof is not available in the shared proof database or the browser fallback cache.
+            Create a proof first, then open the proof page again.
           </p>
           <a
             className="mt-5 inline-flex min-h-10 items-center rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white"

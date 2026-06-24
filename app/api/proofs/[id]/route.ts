@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { deleteProofReceipt, getReceipt } from "@/lib/db";
+import { deleteProofReceiptStore, getReceiptStore } from "@/lib/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const receipt = getReceipt(id);
+  const receipt = await getReceiptStore(id);
   if (!receipt) {
     return NextResponse.json({ error: "Proof receipt not found." }, { status: 404 });
   }
@@ -25,7 +25,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const result = deleteProofReceipt(id);
+  const result = await deleteProofReceiptStore(id);
 
   if (!result.deleted) {
     return NextResponse.json({ error: "Proof receipt not found." }, { status: 404 });

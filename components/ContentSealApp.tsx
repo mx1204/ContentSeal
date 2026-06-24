@@ -509,7 +509,7 @@ export function ContentSealApp({
 
   async function deleteReceipt(receipt: Receipt) {
     const confirmed = window.confirm(
-      `Delete the local proof receipt "${receipt.title}"? This removes the receipt from future scans.`
+      `Delete the proof receipt "${receipt.title}"? This removes the receipt from future scans.`
     );
 
     if (!confirmed) {
@@ -572,7 +572,7 @@ export function ContentSealApp({
           <aside className="relative overflow-hidden rounded-md border border-wire/25 bg-panel/95 p-5 shadow-2xl shadow-wire/10">
             <div className="scanner-sweep" />
             <div className="relative">
-              <p className="font-mono text-xs uppercase text-wire">local proof buffer</p>
+              <p className="font-mono text-xs uppercase text-wire">proof database</p>
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <div className="rounded-md border border-white/10 bg-void/60 p-3">
                   <p className="font-mono text-2xl font-semibold text-pulse">{receipts.length}</p>
@@ -765,7 +765,7 @@ export function ContentSealApp({
                     Upload a saved web image, screenshot, poster, or AI-looking visual.
                   </h3>
                   <p className="mt-2 text-sm leading-5 text-frost/68">
-                    ContentSeal compares it with local proof receipts and separates exact hash,
+                    ContentSeal compares it with saved proof receipts and separates exact hash,
                     visual similarity, metadata, C2PA, watermark, classifier, and human context.
                   </p>
                   <div className="mt-3 grid gap-2 text-xs text-frost/62">
@@ -825,7 +825,7 @@ export function ContentSealApp({
                         aria-label={`Delete ${receipt.title}`}
                         className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-clay/30 bg-clay/10 text-clay hover:bg-clay hover:text-void disabled:cursor-not-allowed disabled:opacity-60"
                         disabled={deletingReceiptId === receipt.id}
-                        title="Delete local proof"
+                        title="Delete proof"
                         type="button"
                         onClick={() => void deleteReceipt(receipt)}
                       >

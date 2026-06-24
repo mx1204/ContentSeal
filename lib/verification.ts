@@ -1,15 +1,13 @@
-import { readFileSync } from "node:fs";
-import {
-  getAsset,
-  findReceiptByHash,
-  getAllReceiptPHashes,
-  getReceipt,
-  insertTrustCard,
-  insertVerification,
-  withDbTransaction
-} from "./db";
 import { buildDecision } from "./decision";
 import { computePHash, phashSimilarity } from "./phash";
+import {
+  findReceiptByHashStore,
+  getAllReceiptPHashesStore,
+  getAssetStore,
+  getReceiptStore,
+  insertVerificationWithTrustCardStore,
+  readStoredMediaBuffer
+} from "./store";
 import { generateTrustCard } from "./trust-card";
 import type {
   MediaAnalysis,
@@ -37,15 +35,14 @@ async function improveWithReceiptAspectCrop(
     return best;
   }
 
-  const uploadedAsset = getAsset(analysis.mediaId);
+  const uploadedAsset = await readStoredMediaBuffer(analysis.mediaId);
   if (!uploadedAsset) {
     return best;
   }
 
   try {
-    const uploadedBuffer = readFileSync(uploadedAsset.storagePath);
-    const cropped = await computePHash(uploadedBuffer, "center_crop", aspectRatio);
-    const storedReceiptHashes = getAllReceiptPHashes().filter(
+    const cropped = await computePHash(uploadedAsset.buffer, "center_crop", aspectRatio);
+    const storedReceiptHashes = (await getAllReceiptPHashesStore()).filter(
       (storedHash) => storedHash.receiptId === best.receipt.id
     );
     return storedReceiptHashes.reduce<SimilarityMatch>((currentBest, storedHash) => {
@@ -95,11 +92,11 @@ export async function findBestVisualMatch(
   portableProofs: PortableProofReceipt[] = []
 ): Promise<SimilarityMatch | null> {
   let best: SimilarityMatch | null = null;
-  const receiptHashes = getAllReceiptPHashes();
+  const receiptHashes = await getAllReceiptPHashesStore();
 
   for (const uploadedHash of analysis.pHashes) {
     for (const storedHash of receiptHashes) {
-      const receipt = storedHash.receiptId ? getReceipt(storedHash.receiptId) : null;
+      const receipt = storedHash.receiptId ? await getReceiptStore(storedHash.receiptId) : null;
       if (!receipt) {
         continue;
       }
@@ -131,30 +128,33 @@ export async function verifyAnalysis(
   analysis: MediaAnalysis,
   portableProofs: PortableProofReceipt[] = []
 ): Promise<VerificationResult> {
-  const exactReceipt = findReceiptByHash(analysis.sha256) ?? findPortableReceiptByHash(analysis.sha256, portableProofs);
+  const exactReceipt =
+    (await findReceiptByHashStore(analysis.sha256)) ??
+    findPortableReceiptByHash(analysis.sha256, portableProofs);
   const visualMatch = exactReceipt ? null : await findBestVisualMatch(analysis, portableProofs);
-  const decision = buildDecision({ analysis, exactReceipt, visualMatch });
+  const matchedReceiptForOcr = exactReceipt ?? visualMatch?.receipt ?? null;
+  const matchedAssetForOcr = matchedReceiptForOcr
+    ? await getAssetStore(matchedReceiptForOcr.mediaId)
+    : null;
+  const decision = buildDecision({
+    analysis,
+    exactReceipt,
+    visualMatch,
+    matchedAssetOcrText: matchedAssetForOcr?.ocrText
+  });
   const card = generateTrustCard(decision.evidence);
   const matchedReceiptId = decision.evidence.matchedReceipt?.id ?? null;
-  const matchedReceiptIdForStorage = matchedReceiptId && getReceipt(matchedReceiptId) ? matchedReceiptId : null;
-  const verificationId = withDbTransaction(() => {
-    const insertedVerificationId = insertVerification({
-      analysisId: analysis.id,
-      matchedReceiptId: matchedReceiptIdForStorage,
-      exactHashMatch: decision.evidence.exactHashMatch,
-      similarityScore: decision.evidence.visualSimilarityScore,
-      trustLabel: decision.trustLabel,
-      badges: decision.badges,
-      evidence: decision.evidence
-    });
-
-    insertTrustCard({
-      verificationId: insertedVerificationId,
-      trustLabel: decision.trustLabel,
-      card
-    });
-
-    return insertedVerificationId;
+  const matchedReceiptIdForStorage =
+    matchedReceiptId && (await getReceiptStore(matchedReceiptId)) ? matchedReceiptId : null;
+  const verificationId = await insertVerificationWithTrustCardStore({
+    analysisId: analysis.id,
+    matchedReceiptId: matchedReceiptIdForStorage,
+    exactHashMatch: decision.evidence.exactHashMatch,
+    similarityScore: decision.evidence.visualSimilarityScore,
+    trustLabel: decision.trustLabel,
+    badges: decision.badges,
+    evidence: decision.evidence,
+    card
   });
 
   return {

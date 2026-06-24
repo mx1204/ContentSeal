@@ -74,7 +74,7 @@ export default function DemoPage() {
             <p className="mt-5 max-w-2xl text-base leading-7 text-frost/70">
               This page is a controlled test library for ContentSeal. Each image is a fixture with a
               specific verification outcome, so teammates and reviewers can see exact-match proof, modified-copy
-              warning, screenshot recovery, local proof deletion, and honest unknown handling.
+              warning, screenshot recovery, proof deletion, and honest unknown handling.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a

@@ -1,6 +1,5 @@
-import { readFile } from "node:fs/promises";
 import { NextResponse } from "next/server";
-import { getAsset } from "@/lib/db";
+import { readStoredMediaBuffer } from "@/lib/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,16 +9,15 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const asset = getAsset(id);
-  if (!asset) {
+  const storedMedia = await readStoredMediaBuffer(id);
+  if (!storedMedia) {
     return NextResponse.json({ error: "Media asset not found." }, { status: 404 });
   }
 
-  const buffer = await readFile(asset.storagePath);
-  return new Response(buffer, {
+  return new Response(new Uint8Array(storedMedia.buffer), {
     headers: {
-      "Content-Type": asset.mimeType,
-      "Content-Length": String(buffer.byteLength),
+      "Content-Type": storedMedia.mimeType,
+      "Content-Length": String(storedMedia.buffer.byteLength),
       "Cache-Control": "private, max-age=3600"
     }
   });

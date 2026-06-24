@@ -1,14 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import {
-  insertDetectionSignals,
-  insertMediaAnalysis,
-  insertMediaAsset,
-  insertPHashVariants,
-  withDbTransaction,
-  type DetectionSignalInput
-} from "./db";
+import type { DetectionSignalInput } from "./db";
 import { sha256 } from "./hash";
 import { extractRedactedMetadata, hasEditSoftwareSignal } from "./metadata";
 import { extractOcrText } from "./ocr";
@@ -22,6 +15,7 @@ import {
   type MediaAnalysis,
   type SupportedImageMimeType
 } from "./types";
+import { storeMediaAnalysis } from "./store";
 
 export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 
@@ -148,122 +142,112 @@ export async function analyseAndStoreMedia(input: {
   }
 
   const mediaIdForPath = randomUUID();
-  const storagePath = mediaPathFor(mediaIdForPath, EXTENSIONS_BY_MIME[decodedMimeType]);
+  const extension = EXTENSIONS_BY_MIME[decodedMimeType];
+  const storagePath = mediaPathFor(mediaIdForPath, extension);
   await writeFile(storagePath, input.buffer);
 
-  const c2pa = await inspectC2pa({ sha256: fileHash, filePath: storagePath });
-  const watermark = await inspectWatermark({ sha256: fileHash });
-  const classifier = await inspectAiClassifier({ sha256: fileHash });
-  const ocr = await extractOcrText(input.buffer);
-
-  const signalTemplates = [
-    signal({
-      signalType: "hash",
-      signalValue: fileHash,
-      confidence: 1,
-      explanation: "SHA-256 hash computed for exact file comparison."
-    }),
-    signal({
-      signalType: "phash",
-      signalValue: JSON.stringify(pHashes.map((item) => ({ variant: item.variant, hash: item.hash }))),
-      confidence: null,
-      explanation: "Perceptual hashes computed for visual similarity matching."
-    }),
-    signal({
-      signalType: "metadata",
-      signalValue: metadata.status,
-      confidence: hasEditSoftwareSignal(metadata) ? 0.8 : null,
-      explanation: metadata.software
-        ? `Public metadata reports software: ${metadata.software}.`
-        : `Metadata status is ${metadata.status}.`
-    }),
-    signal({
-      signalType: "c2pa",
-      signalValue: c2pa.status,
-      confidence: c2pa.status === "present" ? 1 : null,
-      explanation: c2pa.summary ?? `C2PA status is ${c2pa.status}.`
-    }),
-    signal({
-      signalType: "watermark",
-      signalValue: watermark.status,
-      confidence: watermark.confidence ?? null,
-      explanation: watermark.explanation
-    }),
-    signal({
-      signalType: "classifier",
-      signalValue: classifier.status,
-      confidence: classifier.confidence ?? null,
-      explanation: classifier.limitations
-    }),
-    signal({
-      signalType: "ocr",
-      signalValue: ocr.status,
-      confidence: ocr.status === "completed" ? 0.7 : null,
-      explanation:
-        ocr.status === "completed"
-          ? "OCR text fingerprint captured for conflict checks."
-          : "OCR did not produce a usable text fingerprint."
-    })
-  ];
-
-  let mediaId: string;
   try {
-    mediaId = withDbTransaction(() => {
-      const insertedMediaId = insertMediaAsset({
-        originalName: input.originalName || path.basename(storagePath),
-        mimeType: decodedMimeType,
-        sizeBytes: input.buffer.byteLength,
-        storagePath,
-        sha256: fileHash,
-        width: metadata.width,
-        height: metadata.height,
-        metadataStatus: metadata.status,
-        metadata,
-        ocrText: ocr.text
-      });
+    const c2pa = await inspectC2pa({ sha256: fileHash, filePath: storagePath });
+    const watermark = await inspectWatermark({ sha256: fileHash });
+    const classifier = await inspectAiClassifier({ sha256: fileHash });
+    const ocr = await extractOcrText(input.buffer);
 
-      insertPHashVariants(insertedMediaId, pHashes);
-      insertMediaAnalysis({
-        mediaId: insertedMediaId,
-        analysisId,
-        fileHash,
-        pHashes,
-        metadataStatus: metadata.status,
-        c2paStatus: c2pa.status,
-        watermarkStatus: watermark.status,
-        classifierStatus: classifier.status,
-        classifierConfidence: classifier.confidence,
-        ocrStatus: ocr.status,
-        createdAt
-      });
+    const signalTemplates = [
+      signal({
+        signalType: "hash",
+        signalValue: fileHash,
+        confidence: 1,
+        explanation: "SHA-256 hash computed for exact file comparison."
+      }),
+      signal({
+        signalType: "phash",
+        signalValue: JSON.stringify(pHashes.map((item) => ({ variant: item.variant, hash: item.hash }))),
+        confidence: null,
+        explanation: "Perceptual hashes computed for visual similarity matching."
+      }),
+      signal({
+        signalType: "metadata",
+        signalValue: metadata.status,
+        confidence: hasEditSoftwareSignal(metadata) ? 0.8 : null,
+        explanation: metadata.software
+          ? `Public metadata reports software: ${metadata.software}.`
+          : `Metadata status is ${metadata.status}.`
+      }),
+      signal({
+        signalType: "c2pa",
+        signalValue: c2pa.status,
+        confidence: c2pa.status === "present" ? 1 : null,
+        explanation: c2pa.summary ?? `C2PA status is ${c2pa.status}.`
+      }),
+      signal({
+        signalType: "watermark",
+        signalValue: watermark.status,
+        confidence: watermark.confidence ?? null,
+        explanation: watermark.explanation
+      }),
+      signal({
+        signalType: "classifier",
+        signalValue: classifier.status,
+        confidence: classifier.confidence ?? null,
+        explanation: classifier.limitations
+      }),
+      signal({
+        signalType: "ocr",
+        signalValue: ocr.status,
+        confidence: ocr.status === "completed" ? 0.7 : null,
+        explanation:
+          ocr.status === "completed"
+            ? "OCR text fingerprint captured for conflict checks."
+            : "OCR did not produce a usable text fingerprint."
+      })
+    ];
 
-      insertDetectionSignals(
-        signalTemplates.map((item) => ({
-          ...item,
-          analysisId
-        }))
-      );
+    const detectionSignals = signalTemplates.map((item) => ({
+      ...item,
+      analysisId
+    }));
 
-      return insertedMediaId;
+    const mediaId = await storeMediaAnalysis({
+      buffer: input.buffer,
+      extension,
+      storagePath,
+      originalName: input.originalName || path.basename(storagePath),
+      mimeType: decodedMimeType,
+      sizeBytes: input.buffer.byteLength,
+      sha256: fileHash,
+      width: metadata.width,
+      height: metadata.height,
+      metadataStatus: metadata.status,
+      metadata,
+      ocrText: ocr.text,
+      pHashes,
+      analysisId,
+      c2paStatus: c2pa.status,
+      watermarkStatus: watermark.status,
+      classifierStatus: classifier.status,
+      classifierConfidence: classifier.confidence,
+      ocrStatus: ocr.status,
+      createdAt,
+      detectionSignals
     });
+
+    return {
+      id: analysisId,
+      mediaId,
+      sha256: fileHash,
+      mimeType: decodedMimeType,
+      sizeBytes: input.buffer.byteLength,
+      metadata,
+      pHashes,
+      c2pa,
+      watermark,
+      classifier,
+      ocrText: ocr.text,
+      ocrStatus: ocr.status,
+      createdAt
+    } satisfies MediaAnalysis;
   } catch (error) {
     await rm(storagePath, { force: true });
     throw error;
   }
-
-  return {
-    id: analysisId,
-    mediaId,
-    sha256: fileHash,
-    mimeType: decodedMimeType,
-    sizeBytes: input.buffer.byteLength,
-    metadata,
-    pHashes,
-    c2pa,
-    watermark,
-    classifier,
-    ocrText: ocr.text,
-    ocrStatus: ocr.status,
-    createdAt
-  } satisfies MediaAnalysis;
 }
