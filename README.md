@@ -1,10 +1,10 @@
 # ContentSeal
 
-ContentSeal is an image-first provenance verification demo for the A2 challenge:
+ContentSeal is a screenshot provenance recovery demo for the A2 challenge:
 
 > Authenticity in a synthetic world -- how might we build lightweight provenance tools that help people verify what is real, human, and trustworthy?
 
-The app lets a creator issue a proof receipt for an original image, then lets anyone scan a saved web image, screenshot, repost, edited copy, or unknown visual against those receipts. It combines deterministic signals, weak provenance signals, human accountability context, and a guarded Content Trust Card. It does not claim that content is true or fake.
+The app lets an issuer seal an original image with a proof receipt, then lets anyone recover that source from a saved image, screenshot, repost, crop, compressed copy, edited copy, or direct image URL. It combines deterministic hashes, visual fingerprints, metadata/OCR signals, issuer accountability, and a guarded Content Trust Card. It does not claim that content is true or fake.
 
 ## Live Site
 
@@ -33,14 +33,15 @@ Run `npm run demo:assets` again only when you want to regenerate the determinist
 ### On Vercel
 
 1. Open [https://contentseal.vercel.app](https://contentseal.vercel.app).
-2. Go to `Create Proof`.
+2. Go to `Seal Source`.
 3. Upload an original PNG, JPEG, WebP, or AVIF image. For the planned demo path, use `demo/assets/01-original-proof.png` from this repo when testing locally, or use any image saved from your device on the deployed site.
 4. Fill the required proof fields, or click `Load Demo` to prefill a realistic receipt.
 5. Click `Create Proof Receipt`.
-6. Go to `Verify`.
+6. Go to `Recover Source`.
 7. Upload the same image. Expected result: `Verified Original`.
 8. Upload a visually similar edited or reposted image. Expected result: `Modified Copy`, `Screenshot / Repost Match`, or `Conflicting Signals`, depending on the signals.
-9. Delete the proof from the proof list if you want to show that future scans no longer match it.
+9. Paste a direct public image URL in `Recover Source` to scan without saving the file first. Local/private URLs are blocked.
+10. Delete the proof from the proof list if you want to show that future scans no longer match it.
 
 ### With Demo Fixtures
 
@@ -78,20 +79,20 @@ FIREBASE_STORAGE_BUCKET=contentseal-6c285.firebasestorage.app
 
 Do not commit the Firebase service account JSON or `.env.local`.
 
-## Demo Flow
+## Winning Demo Flow
 
-1. In `Create Proof`, click `Load Demo`.
+1. In `Seal Source`, click `Load Demo`.
 2. Upload `demo/assets/01-original-proof.png` as the original media.
-3. In `Scan Image`, upload `demo/assets/01-original-proof.png`.
+3. In `Recover Source`, upload `demo/assets/01-original-proof.png`.
    Expected: `Verified Original`.
 4. Upload `demo/assets/03-screenshot-repost.png`.
-   Expected: `Screenshot / Repost Match`.
+   Expected: `Screenshot / Repost Match`, proving source recovery after metadata loss.
 5. Upload `demo/assets/02-edited-copy.png`.
-   Expected: `Modified Copy` or `Conflicting Signals`.
+   Expected: `Modified Copy` or `Conflicting Signals`, proving changed-copy warning.
 6. Upload `demo/assets/04-unknown-ai-style.png`.
    Expected: `No Verified Origin Found`.
 
-The scan flow also accepts any JPEG, PNG, WebP, or AVIF image saved from a website or device. If no matching proof receipt exists, the correct outcome is an accountable unknown state, not a fake verdict.
+The scan flow also accepts any JPEG, PNG, WebP, or AVIF image saved from a website or device, plus direct public image URLs. If no matching proof receipt exists, the correct outcome is an accountable unknown state, not a fake verdict.
 
 ## Commands
 
@@ -134,7 +135,7 @@ Watermark and classifier providers are pluggable and mockable. To demo AI-origin
 1. Upload or analyse an image and copy its SHA-256 value from the UI.
 2. Copy `demo/mock-signals.example.json` to `data/mock-signals.json`.
 3. Replace `replace-with-sha256` with the copied hash.
-4. Re-upload the same file in `Scan Image`.
+4. Re-upload the same file in `Recover Source`.
 
 C2PA can also be mocked this way. For real C2PA inspection, set `C2PATOOL_PATH` or `CONTENTSEAL_C2PATOOL_PATH` to a local `c2patool` executable.
 

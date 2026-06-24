@@ -13,25 +13,25 @@ import { InteractiveProofHero } from "@/components/InteractiveProofHero";
 import { SiteNav } from "@/components/SiteNav";
 
 const trustSignals = [
-  "SHA-256 exact match",
-  "Perceptual similarity",
-  "Declared AI usage",
-  "Creator trust level",
-  "Expiry and version status",
-  "Optional C2PA context"
+  "Exact original match",
+  "Screenshot recovery",
+  "Crop and compression tolerance",
+  "OCR conflict warning",
+  "Proof lifecycle status",
+  "Human-accountable issuer"
 ];
 
 const routes = [
   {
     href: "/create",
-    title: "Create Proof",
-    text: "Issue a tamper-evident receipt before a poster, notice, image, or screenshot spreads.",
+    title: "Seal Source",
+    text: "Issue a lightweight receipt for an original poster, notice, image, or public visual claim.",
     icon: Fingerprint
   },
   {
     href: "/verify",
-    title: "Scan Any Image",
-    text: "Upload a saved web image, screenshot, repost, or unknown visual and compare it against known receipts.",
+    title: "Recover Source",
+    text: "Upload a screenshot, repost, crop, compressed image, or paste a direct image URL to find a trusted source.",
     icon: ScanLine
   },
   {
@@ -43,7 +43,7 @@ const routes = [
   {
     href: "/demo",
     title: "Demo Cases",
-    text: "Run the hackathon story: official poster, edited copy, screenshot repost, and outdated version.",
+    text: "Run the pitch story: original source, screenshot/repost, edited copy, unknown image, and deletion.",
     icon: Sparkles
   }
 ];
@@ -72,7 +72,7 @@ export default function Home() {
             <div>
               <p className="text-sm font-semibold text-wire">Product surface</p>
               <h2 className="mt-2 text-3xl font-semibold tracking-normal text-frost">
-                A complete site, not just one upload box.
+                A lightweight recovery workflow for broken provenance.
               </h2>
             </div>
             <a className="inline-flex items-center gap-2 text-sm font-semibold text-pulse" href="/trust">
@@ -115,16 +115,16 @@ export default function Home() {
             </h2>
             <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/70">
               The system separates deterministic proof from weaker context. A file can match a proof
-              receipt exactly, look visually related, contain missing metadata, include a self-declared
-              creator, or be expired. Those signals should not collapse into one vague score.
+              receipt exactly, look visually related after a screenshot, contain stripped metadata,
+              include a self-declared issuer, or be expired. Those signals should not collapse into one vague score.
             </p>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               {[
-              { icon: Fingerprint, title: "Integrity", text: "Hash and pHash decide exact, modified, or screenshot-style matches." },
-              { icon: Binary, title: "Evidence", text: "C2PA, metadata, OCR, classifier, and watermark signals stay explainable." },
-                { icon: CalendarClock, title: "Lifecycle", text: "Receipts can be active, expired, revoked, disputed, replaced, or deleted locally." },
-                { icon: LinkIcon, title: "Public proof", text: "Proof links and QR-ready pages survive when metadata is stripped." }
+              { icon: Fingerprint, title: "Recovery", text: "SHA-256 catches exact originals; pHash recovers screenshots, crops, and compressed reposts." },
+              { icon: Binary, title: "Difference", text: "Metadata, OCR, C2PA, classifier, and watermark signals stay explainable." },
+                { icon: CalendarClock, title: "Lifecycle", text: "Receipts can be active, expired, revoked, replaced, or deleted locally." },
+                { icon: LinkIcon, title: "Proof page", text: "The proof link survives when platform metadata disappears." }
               ].map((item) => {
                 const Icon = item.icon;
                 return (
@@ -147,8 +147,8 @@ export default function Home() {
             <div className="mt-3 grid gap-2 rounded-md bg-white/8 p-4">
               <p className="text-sm font-semibold text-wire">Screenshot / Repost Match</p>
               <p className="text-sm leading-6 text-frost/70">
-                Visually related to a known proof receipt, but not the original file. Metadata is missing,
-                so users should open the original proof page before resharing.
+                Visually related to a known proof receipt, but not the original file. Metadata is gone,
+                so users should open the recovered proof page before resharing.
               </p>
             </div>
           </div>
@@ -159,11 +159,11 @@ export default function Home() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5 rounded-md border border-wire/25 bg-wire/10 p-6">
           <div>
             <p className="text-sm font-semibold text-wire">Ready for the demo?</p>
-            <h2 className="mt-1 text-2xl font-semibold text-frost">Create proof first. Scan any copy later.</h2>
+            <h2 className="mt-1 text-2xl font-semibold text-frost">Seal the source first. Recover it from any copy later.</h2>
           </div>
           <div className="flex flex-wrap gap-3">
             <a className="inline-flex min-h-11 items-center gap-2 rounded-md bg-pulse px-4 py-2 text-sm font-bold text-void hover:bg-wire" href="/create">
-              Create Proof
+              Seal Source
               <Fingerprint size={17} />
             </a>
             <a className="inline-flex min-h-11 items-center gap-2 rounded-md border border-white/15 bg-white/7 px-4 py-2 text-sm font-bold text-frost hover:bg-white/12" href="/demo">

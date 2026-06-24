@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import sharp from "sharp";
-import { analyseAndStoreMedia, InvalidImageError, inspectImageContent } from "@/lib/analysis";
+import {
+  analyseAndStoreMedia,
+  InvalidImageError,
+  inspectImageContent,
+  isBlockedRemoteHostname
+} from "@/lib/analysis";
 import { buildDecision } from "@/lib/decision";
 import { deleteProofReceipt, getReceipt, insertProofReceipt, resetDatabaseForTests } from "@/lib/db";
 import { sha256 } from "@/lib/hash";
@@ -153,6 +158,16 @@ describe("ContentSeal media detection", () => {
     expect(text).not.toContain("fake");
     expect(text).not.toContain("definitely");
     expect(text).toContain("metadata is missing");
+  });
+
+  it("blocks local and private hosts for remote image scanning", () => {
+    expect(isBlockedRemoteHostname("localhost")).toBe(true);
+    expect(isBlockedRemoteHostname("127.0.0.1")).toBe(true);
+    expect(isBlockedRemoteHostname("10.4.0.8")).toBe(true);
+    expect(isBlockedRemoteHostname("172.20.1.4")).toBe(true);
+    expect(isBlockedRemoteHostname("192.168.1.20")).toBe(true);
+    expect(isBlockedRemoteHostname("::1")).toBe(true);
+    expect(isBlockedRemoteHostname("images.example.com")).toBe(false);
   });
 
   it("creates a proof receipt and verifies the exact original", async () => {

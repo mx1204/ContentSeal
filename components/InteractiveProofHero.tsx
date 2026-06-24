@@ -13,35 +13,35 @@ import {
 const signalStack = [
   {
     label: "SHA-256",
-    value: "exact match",
+    value: "sealed original",
     score: 100,
-    detail: "Receipt hash matches the uploaded media byte-for-byte."
+    detail: "If the uploaded file is unchanged, the receipt matches byte-for-byte."
   },
   {
     label: "pHash",
-    value: "visual relation",
+    value: "screenshot recovery",
     score: 92,
-    detail: "Visual fingerprint can still link reposts and edited copies."
+    detail: "If metadata is stripped, visual fingerprints can still recover a likely source."
   },
   {
-    label: "Creator",
-    value: "trusted source",
+    label: "OCR diff",
+    value: "changed claim",
     score: 88,
-    detail: "Accountability is tied to a declared organisation or person."
+    detail: "Text conflict checks help flag changed dates, venues, links, and payment details."
   },
   {
-    label: "AI use",
-    value: "declared",
+    label: "Proof page",
+    value: "human accountable",
     score: 76,
-    detail: "AI involvement is shown as context, not hidden in metadata."
+    detail: "The recovered source links back to who issued it, when, and whether it is still current."
   }
 ];
 
 const readoutLines = [
-  "proof receipt active",
-  "creator identity linked",
-  "visual similarity indexed",
-  "public trust card ready"
+  "metadata stripped by screenshot",
+  "visual source recovered",
+  "changed fields isolated",
+  "proof page ready"
 ];
 
 export function InteractiveProofHero() {
@@ -104,17 +104,17 @@ export function InteractiveProofHero() {
         <div className="max-w-4xl">
           <div className="mb-5 inline-flex items-center gap-2 rounded-md border border-wire/35 bg-wire/10 px-3 py-2 text-sm font-semibold text-wire">
             <ShieldCheck size={16} />
-            Live provenance scanner
+            Screenshot provenance recovery
           </div>
 
           <h1 className="scan-title max-w-4xl text-5xl font-semibold tracking-normal text-frost sm:text-6xl lg:text-7xl">
-            Proof that travels with digital content.
+            When metadata disappears, recover the source.
           </h1>
 
           <p className="mt-5 max-w-2xl text-base leading-7 text-frost/75 sm:text-lg">
-            ContentSeal gives creators and organisations a lightweight trust layer for official media:
-            proof receipts, technical integrity checks, human accountability, declared AI usage, and
-            current-version context.
+            ContentSeal helps ordinary people check a screenshot, repost, crop, compressed image,
+            or direct image URL against lightweight proof receipts, then shows the recovered source,
+            changed-copy risk, and what still cannot be proven.
           </p>
 
           <div className="mt-6 flex min-h-10 max-w-2xl items-center gap-3 rounded-md border border-white/10 bg-white/7 px-4 py-3 font-mono text-sm text-pulse">
@@ -128,23 +128,23 @@ export function InteractiveProofHero() {
               className="interactive-button inline-flex min-h-12 items-center gap-2 rounded-md bg-pulse px-5 py-3 text-sm font-bold text-void hover:bg-wire"
               href="/create"
             >
-              Create a Proof Receipt
+              Seal Original Source
               <ArrowRight size={18} />
             </a>
             <a
               className="interactive-button inline-flex min-h-12 items-center gap-2 rounded-md border border-white/18 bg-white/7 px-5 py-3 text-sm font-bold text-frost hover:bg-white/12"
               href="/verify"
             >
-              Scan Any Image
+              Recover From Image
               <ScanLine size={18} />
             </a>
           </div>
 
           <div className="mt-8 grid max-w-5xl gap-3 sm:grid-cols-3">
             {[
-              ["Exact file", "Deterministic hash comparison"],
-              ["Similar media", "pHash for reposts and edits"],
-              ["Trust card", "Clear evidence and limitations"]
+              ["Exact original", "SHA-256 finds unchanged files"],
+              ["Screenshot/repost", "pHash recovers source when bytes change"],
+              ["Changed copy", "OCR and signals explain risk without fake claims"]
             ].map(([title, text]) => (
               <div
                 className="scan-panel rounded-md border border-white/12 bg-white/7 p-4 backdrop-blur"
@@ -207,7 +207,7 @@ export function InteractiveProofHero() {
                 Decision output
               </div>
               <p className="mt-3 font-mono text-sm leading-6 text-frost/72">
-                verified_original / active_receipt / public_proof_ready
+                recovered_source / metadata_stripped / proof_page_ready
               </p>
             </div>
           </div>

@@ -9,6 +9,7 @@ import {
   ExternalLink,
   FileText,
   Fingerprint,
+  Globe2,
   Image as ImageIcon,
   Info,
   Link as LinkIcon,
@@ -352,6 +353,20 @@ function SelectField<T extends string>({
 }
 
 function FileInput({ name, label, hint }: { name: string; label: string; hint?: string }) {
+  return <FileInputBase name={name} label={label} hint={hint} required />;
+}
+
+function FileInputBase({
+  name,
+  label,
+  hint,
+  required = false
+}: {
+  name: string;
+  label: string;
+  hint?: string;
+  required?: boolean;
+}) {
   return (
     <label className="grid gap-2">
       <span className="text-sm font-medium text-frost/78">{label}</span>
@@ -360,7 +375,7 @@ function FileInput({ name, label, hint }: { name: string; label: string; hint?: 
         name={name}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/avif"
-        required
+        required={required}
       />
       {hint ? <span className="font-mono text-xs text-frost/45">{hint}</span> : null}
     </label>
@@ -544,8 +559,8 @@ export function ContentSealApp({
   const latestReceipt = useMemo(() => receipts[0], [receipts]);
   const heroTitle =
     activeTab === "create"
-      ? "Seal original media before it spreads."
-      : "Scan any image for provenance evidence.";
+      ? "Seal the source before screenshots strip the trail."
+      : "Recover the source from a screenshot, repost, or image URL.";
 
   return (
     <main className="min-h-screen bg-void text-frost">
@@ -563,9 +578,9 @@ export function ContentSealApp({
               {heroTitle}
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-6 text-frost/70 sm:text-base">
-              A2 asks for lightweight tools that help people verify what is real, human,
-              and trustworthy. This flow turns that into a working proof receipt, creator
-              accountability, declared AI usage, and an evidence card that keeps uncertainty visible.
+              When metadata is lost through screenshots, reposts, compression, or cropping,
+              ContentSeal falls back to proof receipts, visual fingerprints, OCR conflict checks,
+              and a cautious trust card that helps ordinary people find the most credible source.
             </p>
           </div>
 
@@ -595,7 +610,7 @@ export function ContentSealApp({
                 </a>
               ) : (
                 <p className="mt-4 rounded-md border border-white/10 bg-void/60 px-3 py-2 text-sm text-frost/62">
-                  Create a receipt first, then verify exact, edited, and reposted media.
+                  Create a receipt first, then recover it from screenshots, edited copies, and URL scans.
                 </p>
               )}
             </div>
@@ -634,7 +649,7 @@ export function ContentSealApp({
                 onClick={() => setActiveTab("verify")}
               >
                 <SearchCheck size={16} />
-                Verify
+                Recover
               </button>
             </div>
 
@@ -651,7 +666,7 @@ export function ContentSealApp({
                     <div>
                       <p className="font-mono text-xs uppercase text-wire">quick demo</p>
                       <p className="mt-1 text-sm leading-5 text-frost/68">
-                        Fill the receipt context instantly. The media file still needs a manual pick.
+                        Fill the trusted-source context instantly. The original file still needs a manual pick.
                       </p>
                     </div>
                     <button
@@ -665,7 +680,7 @@ export function ContentSealApp({
                     </button>
                   </div>
                   <p className="mt-3 rounded-md border border-white/10 bg-void/45 px-2 py-2 font-mono text-xs text-frost/50">
-                    file: demo/assets/01-original-proof.png
+                    first seal: demo/assets/01-original-proof.png
                   </p>
                 </div>
                 <TextField
@@ -762,36 +777,58 @@ export function ContentSealApp({
                 <div className="scan-panel rounded-md border border-wire/20 bg-wire/10 p-3">
                   <p className="font-mono text-xs uppercase text-wire">scan any image</p>
                   <h3 className="mt-2 text-base font-semibold text-frost">
-                    Upload a saved web image, screenshot, poster, or AI-looking visual.
+                    Upload a screenshot, paste a direct image URL, or scan a saved repost.
                   </h3>
                   <p className="mt-2 text-sm leading-5 text-frost/68">
-                    ContentSeal compares it with saved proof receipts and separates exact hash,
-                    visual similarity, metadata, C2PA, watermark, classifier, and human context.
+                    ContentSeal tries to recover the source after metadata is stripped, then separates
+                    exact hash, visual similarity, metadata, OCR conflict, C2PA, and human context.
                   </p>
                   <div className="mt-3 grid gap-2 text-xs text-frost/62">
                     <span className="rounded-md border border-white/10 bg-void/45 px-2 py-1">
-                      1. Exact file check
+                      1. Exact source check
                     </span>
                     <span className="rounded-md border border-white/10 bg-void/45 px-2 py-1">
-                      2. Similar image / repost recovery
+                      2. Screenshot / repost recovery
                     </span>
                     <span className="rounded-md border border-white/10 bg-void/45 px-2 py-1">
-                      3. Content Trust Card with limits
+                      3. Changed-copy warning
                     </span>
                   </div>
                 </div>
-                <FileInput
-                  hint="Use any JPEG, PNG, WebP, or AVIF saved from your device or the web."
+                <FileInputBase
+                  hint="Use any JPEG, PNG, WebP, or AVIF saved from your device."
                   label="Image to scan"
                   name="file"
                 />
+                <div className="grid gap-2">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase text-frost/45">
+                    <span className="h-px flex-1 bg-white/10" />
+                    or
+                    <span className="h-px flex-1 bg-white/10" />
+                  </div>
+                  <label className="grid gap-2">
+                    <span className="inline-flex items-center gap-2 text-sm font-medium text-frost/78">
+                      <Globe2 size={15} />
+                      Direct image URL
+                    </span>
+                    <input
+                      className={fieldBase()}
+                      name="image_url"
+                      placeholder="https://example.com/poster.png"
+                      type="url"
+                    />
+                    <span className="font-mono text-xs text-frost/45">
+                      Direct public image links only. Local/private URLs are blocked.
+                    </span>
+                  </label>
+                </div>
                 <button
                   className="interactive-button inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-pulse px-4 py-2.5 text-sm font-bold text-void hover:bg-wire disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isVerifying}
                   type="submit"
                 >
                   {isVerifying ? <Loader2 className="animate-spin" size={16} /> : <SearchCheck size={16} />}
-                  Scan Image
+                  Recover Source
                 </button>
                 {verifyError ? (
                   <p className="rounded-md border border-clay/40 bg-clay/12 px-3 py-2 text-sm text-clay">
@@ -860,28 +897,27 @@ export function ContentSealApp({
               <div>
                 <p className="text-sm font-semibold text-wire">Authenticity in a synthetic world</p>
                 <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-normal text-frost sm:text-4xl">
-                  Create proof before content spreads. Verify origin later.
+                  Seal a source before content spreads. Recover it after metadata disappears.
                 </h2>
                 <p className="mt-3 max-w-3xl text-sm leading-6 text-frost/68">
-                  ContentSeal creates lightweight proof receipts for official content, then gives viewers a
-                  human-readable Content Trust Card showing origin signals, integrity, declared AI usage,
-                  accountability context, and what remains uncertain.
+                  ContentSeal creates lightweight proof receipts for official content, then lets viewers recover
+                  that source even when a screenshot, crop, repost, or compressed copy loses its metadata.
                 </p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
                   <div className="scan-panel rounded-md border border-white/10 bg-void/55 p-3">
                     <Fingerprint className="text-pulse" size={18} />
-                    <p className="mt-2 text-sm font-semibold">File integrity</p>
-                    <p className="mt-1 text-xs leading-5 text-frost/58">SHA-256 plus perceptual similarity.</p>
+                    <p className="mt-2 text-sm font-semibold">Source recovery</p>
+                    <p className="mt-1 text-xs leading-5 text-frost/58">SHA-256 first, pHash when bytes change.</p>
                   </div>
                   <div className="scan-panel rounded-md border border-white/10 bg-void/55 p-3">
                     <CalendarClock className="text-pulse" size={18} />
-                    <p className="mt-2 text-sm font-semibold">Current status</p>
-                    <p className="mt-1 text-xs leading-5 text-frost/58">Expiry, revocation, and updates.</p>
+                    <p className="mt-2 text-sm font-semibold">Lifecycle status</p>
+                    <p className="mt-1 text-xs leading-5 text-frost/58">Expiry, revocation, updates, deletion.</p>
                   </div>
                   <div className="scan-panel rounded-md border border-white/10 bg-void/55 p-3">
                     <Info className="text-pulse" size={18} />
-                    <p className="mt-2 text-sm font-semibold">No truth oracle</p>
-                    <p className="mt-1 text-xs leading-5 text-frost/58">Evidence and limits stay visible.</p>
+                    <p className="mt-2 text-sm font-semibold">No fake verdict</p>
+                    <p className="mt-1 text-xs leading-5 text-frost/58">Unknown means no recovered proof yet.</p>
                   </div>
                 </div>
               </div>
@@ -968,7 +1004,7 @@ export function ContentSealApp({
             <div className={panelClass("border-wire/25")}>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-wire">Verification Result</p>
+                  <p className="text-sm font-medium text-wire">Source Recovery Result</p>
                   <h2
                     className={`mt-2 inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xl font-semibold ${labelTone(
                       verifyResult.trust_label
@@ -1006,7 +1042,7 @@ export function ContentSealApp({
                   <div className="rounded-md border border-white/10 bg-void/55 p-4">
                     <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-frost">
                       <Database size={16} />
-                      Evidence
+                      Recovery Evidence
                     </h3>
                     <EvidenceRow label="Exact hash match" value={verifyResult.exact_hash_match} />
                     <EvidenceRow label="Similarity" value={formatPercent(verifyResult.similarity_score)} />
@@ -1096,10 +1132,10 @@ export function ContentSealApp({
                   <div className="grid h-14 w-14 place-items-center rounded-md border border-wire/30 bg-wire/10 text-wire">
                     <ImageIcon size={28} />
                   </div>
-                  <h2 className="mt-4 text-xl font-semibold text-frost">Ready for a proof or verification run</h2>
+                  <h2 className="mt-4 text-xl font-semibold text-frost">Ready to seal a source or recover one</h2>
                   <p className="mt-2 text-sm leading-6 text-frost/68">
-                    Use the create flow for original notices, posters, announcements, and official visuals.
-                    Use the verify flow for screenshots, reposts, compressed copies, or suspicious edits.
+                    Use Create for official notices, posters, announcements, and visual claims before they spread.
+                    Use Verify when the only thing people have is a screenshot, repost, compressed copy, crop, or direct image URL.
                   </p>
                   <div className="mt-4 rounded-md border border-amber/30 bg-amber/10 p-4">
                     <p className="flex items-center gap-2 text-sm font-semibold text-amber">
@@ -1107,8 +1143,8 @@ export function ContentSealApp({
                       Trust philosophy
                     </p>
                     <p className="mt-2 text-sm leading-6 text-frost/70">
-                      A matching receipt shows provenance signals. It does not prove that every claim in the
-                      content is true, and missing proof does not prove the content is fake.
+                      A recovered proof shows source evidence. It does not prove that every claim is true,
+                      and a missing proof does not prove that the content is fake.
                     </p>
                   </div>
                 </div>
@@ -1118,10 +1154,10 @@ export function ContentSealApp({
                     Demo path
                   </p>
                   <ol className="mt-3 grid gap-3 text-sm text-frost/68">
-                    <li>1. Create a proof for the official poster.</li>
-                    <li>2. Verify the same file for a deterministic match.</li>
-                    <li>3. Verify an edited copy or screenshot to see uncertainty.</li>
-                    <li>4. Open the public proof page for receipt context.</li>
+                    <li>1. Seal the official poster as the trusted source.</li>
+                    <li>2. Recover it from the exact file for a deterministic match.</li>
+                    <li>3. Scan a screenshot or edited copy to see what changed.</li>
+                    <li>4. Open the proof page before sharing or acting.</li>
                   </ol>
                 </div>
               </div>

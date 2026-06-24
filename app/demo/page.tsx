@@ -16,44 +16,44 @@ const cases = [
     result: "Verified Original",
     image: "/demo/assets/01-original-proof.png",
     file: "demo/assets/01-original-proof.png",
-    command: "Create proof, then scan the same file",
-    expected: "Hash match, trusted creator, AI-use declaration, active proof",
-    text: "Baseline asset for the PRD promise: the original file carries a proof receipt with source, expiry, version, and human accountability."
+    command: "Seal this file first, then recover it from the same upload",
+    expected: "Exact SHA-256 match, active issuer proof, proof page available",
+    text: "Baseline for the product promise: the original file is sealed before it spreads, creating a trusted source that later scans can recover."
   },
   {
     title: "Edited Copy",
     result: "Modified Copy / Conflicting Signals",
     image: "/demo/assets/02-edited-copy.png",
     file: "demo/assets/02-edited-copy.png",
-    command: "Scan after the original proof exists",
-    expected: "Hash mismatch, perceptual match, changed visible claim",
-    text: "A controlled conflicting case. The date and trust signal change, so the result should warn instead of pretending the file is clean."
+    command: "Scan after the original source has been sealed",
+    expected: "Hash mismatch, visual source recovered, changed-copy warning",
+    text: "A controlled edited-copy case. The date changes, so the product should recover the source and warn instead of pretending the file is clean."
   },
   {
     title: "Screenshot Repost",
     result: "Screenshot / Repost Match",
     image: "/demo/assets/03-screenshot-repost.png",
     file: "demo/assets/03-screenshot-repost.png",
-    command: "Scan a screenshot or reposted crop",
-    expected: "Metadata missing, visual similarity still links to the original",
-    text: "Shows why ContentSeal is stronger than file metadata alone: reposts can lose metadata but still retain visual evidence."
+    command: "Scan a screenshot, crop, repost, or compressed copy",
+    expected: "Metadata loss, exact hash mismatch, visual source recovered",
+    text: "Shows the core A2 insight: even after metadata disappears, a lightweight visual fingerprint can still recover a likely trusted source."
   },
   {
     title: "Unknown AI-Style Media",
     result: "No Verified Origin Found",
     image: "/demo/assets/04-unknown-ai-style.png",
     file: "demo/assets/04-unknown-ai-style.png",
-    command: "Scan without a matching proof",
-    expected: "No verified origin, clear limitation statement",
+    command: "Scan without a matching proof receipt",
+    expected: "No recovered source, clear limitation statement",
     text: "This case keeps the product honest. Missing proof is not a fake verdict; it is an accountable unknown state."
   }
 ];
 
 const labSteps = [
-  "Use the bundled fixtures here, or regenerate them locally with demo:assets.",
-  "Create proof for 01-original-proof.png.",
-  "Scan 01, 02, 03, and 04 in sequence.",
-  "Use the Trust Engine page to explain the decision signals."
+  "Seal 01-original-proof.png as the trusted source.",
+  "Scan 03-screenshot-repost.png to show metadata loss with source recovery.",
+  "Scan 02-edited-copy.png to show changed-copy risk.",
+  "Scan 04-unknown-ai-style.png to show honest unknown handling."
 ];
 
 export default function DemoPage() {
@@ -66,29 +66,29 @@ export default function DemoPage() {
           <div>
             <p className="inline-flex items-center gap-2 rounded-md border border-wire/30 bg-wire/10 px-3 py-2 text-sm font-semibold text-wire">
               <Sparkles size={16} />
-              Technical demo kit
+              Hackathon demo kit
             </p>
             <h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-normal sm:text-5xl lg:text-6xl">
-              Provenance evidence that looks inspectable, not decorative.
+              The pitch: metadata is gone, but the source can still be recovered.
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-frost/70">
-              This page is a controlled test library for ContentSeal. Each image is a fixture with a
-              specific verification outcome, so teammates and reviewers can see exact-match proof, modified-copy
-              warning, screenshot recovery, proof deletion, and honest unknown handling.
+              This page is a controlled test library for ContentSeal. Each image has a specific outcome,
+              so teammates and reviewers can see exact-source proof, screenshot recovery, modified-copy
+              warning, proof deletion, and honest unknown handling.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a
                 className="inline-flex min-h-12 items-center gap-2 rounded-md bg-pulse px-5 py-3 text-sm font-bold text-void hover:bg-wire"
                 href="/create"
               >
-                Start with Create Proof
+                Start by Sealing Source
                 <Fingerprint size={18} />
               </a>
               <a
                 className="inline-flex min-h-12 items-center gap-2 rounded-md border border-white/15 bg-white/5 px-5 py-3 text-sm font-bold text-frost hover:bg-white/10"
                 href="/verify"
               >
-                Scan Any Image
+                Recover Source
                 <ScanLine size={18} />
               </a>
             </div>
@@ -119,8 +119,8 @@ export default function DemoPage() {
               <h2 className="mt-2 text-2xl font-semibold">Fixture gallery</h2>
             </div>
             <p className="max-w-xl text-sm leading-6 text-frost/60">
-              The thumbnails are intentionally compact. They are not hero artwork; they are test
-              inputs for the create and scan flows.
+              These are test inputs, not decorative artwork. Use them to prove the system can recover source
+              evidence after screenshot/repost damage.
             </p>
           </div>
 
@@ -138,7 +138,7 @@ export default function DemoPage() {
             <h2 className="mt-3 text-3xl font-semibold">Where the demo data lives</h2>
             <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/70">
               The live demo includes public previews, while local testing can upload the files from
-              demo/assets. Regenerating fixtures rewrites both the upload files and the page previews.
+              demo/assets. Regenerating fixtures rewrites both upload-ready files and page previews.
             </p>
           </div>
 
@@ -164,8 +164,8 @@ export default function DemoPage() {
           <div>
             <p className="text-sm font-semibold text-wire">Demo closing line</p>
             <h2 className="mt-1 max-w-3xl text-2xl font-semibold">
-              Fake detection asks users to guess after content spreads. ContentSeal lets trustworthy
-              content carry evidence before it spreads.
+              Fake detection asks users to guess after content spreads. ContentSeal recovers trusted source
+              evidence after screenshots, reposts, compression, and crops break the metadata trail.
             </h2>
           </div>
           <a

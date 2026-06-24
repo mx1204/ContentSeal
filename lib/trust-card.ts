@@ -3,19 +3,19 @@ import type { TrustCard, TrustLabel, VerificationEvidence } from "./types";
 
 const CARD_SUMMARIES: Record<TrustLabel, string> = {
   verified_original:
-    "This file exactly matches a ContentSeal proof receipt. The file-level proof is deterministic, while origin proof should still be considered separately from the truth of the content.",
+    "This file exactly matches a ContentSeal proof receipt. The original source was recovered with deterministic file-level evidence.",
   modified_copy:
-    "This image is visually similar to a known ContentSeal proof receipt, but it is not the exact original file.",
+    "This image is visually linked to a known ContentSeal proof receipt, but it is not the exact original file. Treat it as a changed copy until the proof page is checked.",
   screenshot_repost_match:
-    "This appears to be a screenshot or repost of verified content, but it is not the exact original file.",
+    "Metadata may be stripped, but ContentSeal recovered a visually related proof receipt. This looks like a screenshot, crop, or repost rather than the original file.",
   expired_content:
-    "This upload matches a known proof receipt, but the receipt is expired or no longer current.",
+    "ContentSeal recovered a known proof receipt, but that receipt is expired or no longer current.",
   older_verified_version:
-    "This upload matches an older verified receipt. A newer version may be available from the official source.",
+    "ContentSeal recovered an older verified receipt. A newer version may be available from the official source.",
   no_verified_origin_found:
-    "ContentSeal did not find an exact or strong visual match to a stored proof receipt for this upload.",
+    "ContentSeal could not recover a trusted source for this upload from the current proof database.",
   conflicting_signals:
-    "This upload is visually related to a proof receipt, but one or more signals conflict with the stored original."
+    "ContentSeal recovered a related proof receipt, but one or more signals conflict with the stored original."
 };
 
 export function generateTrustCard(evidence: VerificationEvidence): TrustCard {
@@ -30,7 +30,7 @@ export function generateTrustCard(evidence: VerificationEvidence): TrustCard {
 
   if (evidence.matchedReceipt && evidence.visualSimilarityScore != null) {
     if (evidence.visualSimilarityScore >= 0.85) {
-      verified.push("The uploaded image is visually similar to a known ContentSeal proof receipt.");
+      verified.push("A trusted source was recovered through visual similarity, even if metadata is missing.");
     } else {
       unverified.push("Only a weak or possible visual relationship was found.");
     }
@@ -75,7 +75,7 @@ export function generateTrustCard(evidence: VerificationEvidence): TrustCard {
   }
 
   if (evidence.metadataStatus === "missing") {
-    unverified.push("Metadata is missing, so the sharing path cannot be confirmed.");
+    unverified.push("Metadata is missing or stripped, so the sharing path cannot be trusted by metadata alone.");
   } else if (evidence.metadataStatus === "partial") {
     unverified.push("Only partial metadata was available for this file.");
   } else {
@@ -97,7 +97,7 @@ export function generateTrustCard(evidence: VerificationEvidence): TrustCard {
   }
 
   if (evidence.editSignal) {
-    unverified.push("An edit or repost signal was detected.");
+    unverified.push("An edit, repost, crop, compression, or re-export signal was detected.");
   }
 
   if (evidence.ocrConflict) {
@@ -107,17 +107,19 @@ export function generateTrustCard(evidence: VerificationEvidence): TrustCard {
   let recommended_action = "Review the evidence before sharing or relying on this media.";
   if (evidence.trustLabel === "verified_original") {
     recommended_action =
-      "Open the proof receipt to review who claimed the origin and when the receipt was created.";
+      "Open the proof receipt to review who issued the original and when it was sealed.";
   } else if (evidence.trustLabel === "expired_content") {
     recommended_action = "Check the latest official source before resharing this previously verified version.";
   } else if (evidence.trustLabel === "older_verified_version") {
     recommended_action = "Open the proof page or official source to find the newer current version.";
   } else if (evidence.trustLabel === "screenshot_repost_match") {
-    recommended_action = "Open the original proof page before sharing this reposted version.";
+    recommended_action = "Open the recovered proof page before sharing this screenshot or repost.";
   } else if (evidence.trustLabel === "modified_copy") {
-    recommended_action = "Compare this copy with the original proof receipt before sharing.";
+    recommended_action = "Compare this copy with the recovered original proof before sharing or acting on it.";
   } else if (evidence.trustLabel === "conflicting_signals") {
     recommended_action = "Treat this version cautiously and compare it with the original proof receipt.";
+  } else if (evidence.trustLabel === "no_verified_origin_found") {
+    recommended_action = "Do not treat this as a verdict. Ask the sender for the original source or a ContentSeal proof link.";
   }
 
   return {

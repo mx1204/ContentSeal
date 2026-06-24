@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { lookup } from "node:dns/promises";
 import { rm, writeFile } from "node:fs/promises";
+import net from "node:net";
 import path from "node:path";
 import type { DetectionSignalInput } from "./db";
 import { sha256 } from "./hash";
@@ -65,6 +67,20 @@ export class InvalidImageError extends Error {
   }
 }
 
+export class UnsafeRemoteUrlError extends Error {
+  constructor(message = "Remote image URL is not allowed.") {
+    super(message);
+    this.name = "UnsafeRemoteUrlError";
+  }
+}
+
+export class RemoteMediaFetchError extends Error {
+  constructor(message = "Could not fetch the remote image URL.") {
+    super(message);
+    this.name = "RemoteMediaFetchError";
+  }
+}
+
 export function assertSupportedImageMime(mimeType: string): asserts mimeType is SupportedImageMimeType {
   if (!SUPPORTED_IMAGE_MIME_TYPES.includes(mimeType as SupportedImageMimeType)) {
     throw new UnsupportedMediaError(mimeType || "unknown");
@@ -105,6 +121,136 @@ export async function uploadFileToBuffer(file: File) {
   assertSupportedUpload(file);
   const arrayBuffer = await file.arrayBuffer();
   return Buffer.from(arrayBuffer);
+}
+
+function isPrivateIpv4(hostname: string) {
+  const parts = hostname.split(".").map((part) => Number(part));
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return false;
+  }
+
+  const [first, second] = parts;
+  return (
+    first === 10 ||
+    first === 127 ||
+    first === 0 ||
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168)
+  );
+}
+
+function isPrivateIpv6(hostname: string) {
+  const normalized = hostname.toLowerCase();
+  return (
+    normalized === "::1" ||
+    normalized.startsWith("fc") ||
+    normalized.startsWith("fd") ||
+    normalized.startsWith("fe80:")
+  );
+}
+
+export function isBlockedRemoteHostname(hostname: string) {
+  const normalized = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  if (!normalized || normalized === "localhost" || normalized.endsWith(".localhost")) {
+    return true;
+  }
+  if (net.isIP(normalized) === 4) {
+    return isPrivateIpv4(normalized);
+  }
+  if (net.isIP(normalized) === 6) {
+    return isPrivateIpv6(normalized);
+  }
+  return false;
+}
+
+async function assertRemoteUrlIsSafe(url: URL) {
+  if (!["http:", "https:"].includes(url.protocol)) {
+    throw new UnsafeRemoteUrlError("Only http and https image URLs can be scanned.");
+  }
+  if (url.username || url.password) {
+    throw new UnsafeRemoteUrlError("Image URLs with embedded credentials are not allowed.");
+  }
+  if (isBlockedRemoteHostname(url.hostname)) {
+    throw new UnsafeRemoteUrlError("Local, private, or loopback image URLs are not allowed.");
+  }
+
+  const resolved = await lookup(url.hostname, { all: true, verbatim: true }).catch(() => []);
+  if (resolved.some((entry) => isBlockedRemoteHostname(entry.address))) {
+    throw new UnsafeRemoteUrlError("Image URL resolves to a private or loopback address.");
+  }
+}
+
+function filenameFromRemoteUrl(url: URL) {
+  const basename = path.basename(url.pathname) || "remote-image";
+  return basename.includes(".") ? basename : `${basename}.image`;
+}
+
+export async function fetchRemoteImageToBuffer(imageUrl: string) {
+  let currentUrl: URL;
+  try {
+    currentUrl = new URL(imageUrl);
+  } catch {
+    throw new UnsafeRemoteUrlError("Enter a valid direct image URL.");
+  }
+
+  for (let redirectCount = 0; redirectCount < 4; redirectCount += 1) {
+    await assertRemoteUrlIsSafe(currentUrl);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8_000);
+    let response: Response;
+    try {
+      response = await fetch(currentUrl, {
+        redirect: "manual",
+        signal: controller.signal
+      });
+    } catch (error) {
+      clearTimeout(timeout);
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new RemoteMediaFetchError("Remote image request timed out.");
+      }
+      throw new RemoteMediaFetchError();
+    }
+    clearTimeout(timeout);
+
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location) {
+        throw new RemoteMediaFetchError("Remote image redirect did not include a target URL.");
+      }
+      currentUrl = new URL(location, currentUrl);
+      continue;
+    }
+
+    if (!response.ok) {
+      throw new RemoteMediaFetchError(`Remote image returned HTTP ${response.status}.`);
+    }
+
+    const contentType = response.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() ?? "";
+    assertSupportedImageMime(contentType);
+
+    const contentLength = Number(response.headers.get("content-length") ?? 0);
+    if (contentLength > MAX_UPLOAD_BYTES) {
+      throw new MediaTooLargeError(contentLength);
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.byteLength === 0) {
+      throw new EmptyMediaError();
+    }
+    if (buffer.byteLength > MAX_UPLOAD_BYTES) {
+      throw new MediaTooLargeError(buffer.byteLength);
+    }
+
+    return {
+      buffer,
+      mimeType: contentType,
+      originalName: filenameFromRemoteUrl(currentUrl)
+    };
+  }
+
+  throw new UnsafeRemoteUrlError("Remote image URL redirected too many times.");
 }
 
 function signal(input: Omit<DetectionSignalInput, "analysisId">): Omit<DetectionSignalInput, "analysisId"> {

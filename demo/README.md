@@ -14,19 +14,22 @@ npm run demo:assets
 
 Generated files:
 
-- `01-original-proof.png`: upload first in `Create Proof`.
-- `02-edited-copy.png`: upload in `Scan Image`; expected label is `Modified Copy` or `Conflicting Signals`.
-- `03-screenshot-repost.png`: upload in `Scan Image`; expected label is `Screenshot / Repost Match`.
-- `04-unknown-ai-style.png`: upload in `Scan Image`; expected label is `No Verified Origin Found`.
+- `01-original-proof.png`: upload first in `Seal Source`.
+- `02-edited-copy.png`: upload in `Recover Source`; expected label is `Modified Copy` or `Conflicting Signals`.
+- `03-screenshot-repost.png`: upload in `Recover Source`; expected label is `Screenshot / Repost Match`.
+- `04-unknown-ai-style.png`: upload in `Recover Source`; expected label is `No Verified Origin Found`.
 
 Recommended pitch path:
 
-1. Click `Load Demo` in `Create Proof`, then choose `01-original-proof.png` when testing locally, or upload any original image on Vercel.
+1. Click `Load Demo` in `Seal Source`, then choose `01-original-proof.png` when testing locally, or upload any original image on Vercel.
 2. Scan `01-original-proof.png` to show a verified original.
-3. Scan `03-screenshot-repost.png` to show metadata loss with visual recovery.
-4. Scan `02-edited-copy.png` to show changed-file uncertainty.
-5. Delete the created proof receipt, then scan `01-original-proof.png` again to show that proof deletion removes future matches.
+3. Scan `03-screenshot-repost.png` to show metadata loss with source recovery.
+4. Scan `02-edited-copy.png` to show changed-copy uncertainty.
+5. Paste a direct public image URL in `Recover Source` when you want to show web-image scanning without downloading first.
+6. Delete the created proof receipt, then scan `01-original-proof.png` again to show that proof deletion removes future matches.
 
 On Vercel, Firebase-backed persistence lets teammates test receipts across browsers when the Firebase Admin environment variables are configured. Browser localStorage is only a lightweight fallback cache for proof fingerprints.
+
+Remote URL scanning only accepts direct public image URLs. Localhost, private-network, and credentialed URLs are blocked before analysis.
 
 To add mock C2PA, watermark, or classifier signals, copy `demo/mock-signals.example.json` to `data/mock-signals.json` and replace the key with the SHA-256 hash shown in the app.

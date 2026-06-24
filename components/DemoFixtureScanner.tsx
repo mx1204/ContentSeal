@@ -117,14 +117,14 @@ export function DemoFixtureScanner({ cases }: { cases: DemoFixture[] }) {
             className="interactive-button inline-flex min-h-11 items-center gap-2 rounded-md bg-pulse px-4 py-2 text-sm font-bold text-void hover:bg-wire"
             href="/verify"
           >
-            Verify this case
+            Recover this case
             <ScanLine size={17} />
           </a>
           <a
             className="interactive-button inline-flex min-h-11 items-center gap-2 rounded-md border border-white/15 bg-white/7 px-4 py-2 text-sm font-bold text-frost hover:bg-white/12"
             href="/create"
           >
-            Create first proof
+            Seal source first
             <Fingerprint size={17} />
             <ArrowRight size={17} />
           </a>

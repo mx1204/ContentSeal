@@ -41,6 +41,20 @@ function effectiveProofStatus(receipt: ReceiptSummary | null) {
   return receipt.proofStatus ?? "active";
 }
 
+function hasScreenshotShapeChange(analysis: MediaAnalysis, receipt: ReceiptSummary | null) {
+  if (!receipt?.width || !receipt.height || !analysis.metadata.width || !analysis.metadata.height) {
+    return analysis.metadata.status === "missing";
+  }
+
+  const uploadedRatio = analysis.metadata.width / analysis.metadata.height;
+  const receiptRatio = receipt.width / receipt.height;
+  const ratioDelta = Math.abs(uploadedRatio - receiptRatio);
+  const widthDelta = Math.abs(analysis.metadata.width - receipt.width);
+  const heightDelta = Math.abs(analysis.metadata.height - receipt.height);
+
+  return ratioDelta > 0.08 || widthDelta > 90 || heightDelta > 90;
+}
+
 export function classifyAiSignal(input: {
   c2pa: C2paInspection;
   watermark: WatermarkInspection;
@@ -64,6 +78,11 @@ export function buildDecision(input: {
   const strongVisualMatch = Boolean(visualMatch && visualMatch.score >= 0.85);
   const possibleVisualMatch = Boolean(visualMatch && visualMatch.score >= 0.7);
   const matchedReceipt = exactReceipt ?? (possibleVisualMatch ? visualMatch?.receipt ?? null : null);
+  const screenshotRecoverySignal =
+    strongVisualMatch &&
+    !exactReceipt &&
+    hasScreenshotOrPlatformMetadata(analysis.metadata) &&
+    hasScreenshotShapeChange(analysis, matchedReceipt);
   const ocrConflict =
     Boolean(strongVisualMatch && matchedAssetOcrText) &&
     isMaterialOcrConflict(matchedAssetOcrText ?? "", analysis.ocrText);
@@ -90,7 +109,7 @@ export function buildDecision(input: {
     trustLabel = "verified_original";
   } else if (strongVisualMatch && (ocrConflict || analysis.c2pa.status === "invalid")) {
     trustLabel = "conflicting_signals";
-  } else if (strongVisualMatch && hasScreenshotOrPlatformMetadata(analysis.metadata)) {
+  } else if (screenshotRecoverySignal) {
     trustLabel = "screenshot_repost_match";
   } else if (strongVisualMatch) {
     trustLabel = "modified_copy";

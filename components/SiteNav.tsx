@@ -2,8 +2,8 @@ import { ArrowRight, Fingerprint, SearchCheck, ShieldCheck } from "lucide-react"
 
 const navItems = [
   { href: "/", label: "Home" },
-  { href: "/create", label: "Create Proof" },
-  { href: "/verify", label: "Scan Image" },
+  { href: "/create", label: "Seal Source" },
+  { href: "/verify", label: "Recover Source" },
   { href: "/trust", label: "Trust Engine" },
   { href: "/demo", label: "Demo" }
 ];
@@ -31,7 +31,7 @@ export function SiteNav({ tone = "dark" }: { tone?: "dark" | "light" }) {
           <span>
             <span className="block text-lg font-semibold tracking-normal">ContentSeal</span>
             <span className={`block text-xs ${isDark ? "text-frost/55" : "text-ink/55"}`}>
-              Human-accountable content proof
+              Screenshot provenance recovery
             </span>
           </span>
         </a>
@@ -64,7 +64,7 @@ export function SiteNav({ tone = "dark" }: { tone?: "dark" | "light" }) {
             href="/verify"
           >
             <SearchCheck size={16} />
-            Scan
+            Recover
           </a>
           <a
             className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${
