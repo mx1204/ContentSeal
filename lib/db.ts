@@ -1,13 +1,17 @@
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
+import path from "node:path";
 import { createRequire } from "node:module";
 import { randomUUID } from "node:crypto";
-import { dataDir, sqlitePath } from "./paths";
+import { dataDir, mediaStorageDir, sqlitePath } from "./paths";
 import type {
   C2paStatus,
+  AiUsageDeclaration,
   ClassifierStatus,
+  CreatorTrustLevel,
   DetectionSignalType,
   MetadataStatus,
   PHashResult,
+  ProofStatus,
   ReceiptSummary,
   RedactedMetadata,
   TrustBadge,
@@ -49,6 +53,41 @@ export interface DetectionSignalInput {
 
 export interface ProofReceiptRecord extends ReceiptSummary {
   metadata: RedactedMetadata;
+}
+
+export interface DeleteProofReceiptResult {
+  deleted: boolean;
+  mediaId?: string;
+  removedMediaFile: boolean;
+}
+
+function removeStoredMediaFile(storagePath: string | null | undefined) {
+  if (!storagePath) {
+    return false;
+  }
+
+  const resolvedStorageRoot = path.resolve(mediaStorageDir);
+  const resolvedStoragePath = path.resolve(storagePath);
+  const staysInsideStorage =
+    resolvedStoragePath.startsWith(`${resolvedStorageRoot}${path.sep}`) &&
+    resolvedStoragePath !== resolvedStorageRoot;
+
+  if (!staysInsideStorage || !existsSync(resolvedStoragePath)) {
+    return false;
+  }
+
+  rmSync(resolvedStoragePath, { force: true });
+  return true;
+}
+
+function ensureColumn(table: string, column: string, definition: string) {
+  const columns = getDb()
+    .prepare(`PRAGMA table_info(${table})`)
+    .all() as Array<{ name: string }>;
+
+  if (!columns.some((existing) => existing.name === column)) {
+    getDb().exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
 }
 
 export interface StoredPHash {
@@ -99,6 +138,16 @@ export function getDb() {
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         creator_claim TEXT NOT NULL,
+        creator_trust_level TEXT NOT NULL DEFAULT 'self_declared',
+        ai_usage_declaration TEXT NOT NULL DEFAULT 'unknown',
+        organisation_name TEXT,
+        official_source_url TEXT,
+        intended_channel TEXT,
+        intended_audience TEXT,
+        expiry_date TEXT,
+        version_number TEXT,
+        warning_note TEXT,
+        proof_status TEXT NOT NULL DEFAULT 'active',
         original_media_id TEXT NOT NULL,
         proof_created_at TEXT NOT NULL,
         created_at TEXT NOT NULL,
@@ -183,6 +232,17 @@ export function getDb() {
         FOREIGN KEY (receipt_id) REFERENCES proof_receipts(id)
       );
     `);
+
+    ensureColumn("proof_receipts", "creator_trust_level", "TEXT NOT NULL DEFAULT 'self_declared'");
+    ensureColumn("proof_receipts", "ai_usage_declaration", "TEXT NOT NULL DEFAULT 'unknown'");
+    ensureColumn("proof_receipts", "organisation_name", "TEXT");
+    ensureColumn("proof_receipts", "official_source_url", "TEXT");
+    ensureColumn("proof_receipts", "intended_channel", "TEXT");
+    ensureColumn("proof_receipts", "intended_audience", "TEXT");
+    ensureColumn("proof_receipts", "expiry_date", "TEXT");
+    ensureColumn("proof_receipts", "version_number", "TEXT");
+    ensureColumn("proof_receipts", "warning_note", "TEXT");
+    ensureColumn("proof_receipts", "proof_status", "TEXT NOT NULL DEFAULT 'active'");
   }
   return db;
 }
@@ -344,6 +404,16 @@ export function insertDetectionSignals(signals: DetectionSignalInput[]) {
 export function insertProofReceipt(input: {
   title: string;
   creatorClaim: string;
+  creatorTrustLevel?: CreatorTrustLevel;
+  aiUsageDeclaration?: AiUsageDeclaration;
+  organisationName?: string;
+  officialSourceUrl?: string;
+  intendedChannel?: string;
+  intendedAudience?: string;
+  expiryDate?: string;
+  versionNumber?: string;
+  warningNote?: string;
+  proofStatus?: ProofStatus;
   mediaId: string;
 }) {
   return withDbTransaction(() => {
@@ -352,10 +422,30 @@ export function insertProofReceipt(input: {
     getDb()
       .prepare(
         `INSERT INTO proof_receipts (
-          id, title, creator_claim, original_media_id, proof_created_at, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?)`
+          id, title, creator_claim, creator_trust_level, ai_usage_declaration,
+          organisation_name, official_source_url, intended_channel, intended_audience,
+          expiry_date, version_number, warning_note, proof_status,
+          original_media_id, proof_created_at, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .run(id, input.title, input.creatorClaim, input.mediaId, createdAt, createdAt);
+      .run(
+        id,
+        input.title,
+        input.creatorClaim,
+        input.creatorTrustLevel ?? "self_declared",
+        input.aiUsageDeclaration ?? "unknown",
+        input.organisationName?.trim() || null,
+        input.officialSourceUrl?.trim() || null,
+        input.intendedChannel?.trim() || null,
+        input.intendedAudience?.trim() || null,
+        input.expiryDate?.trim() || null,
+        input.versionNumber?.trim() || null,
+        input.warningNote?.trim() || null,
+        input.proofStatus ?? "active",
+        input.mediaId,
+        createdAt,
+        createdAt
+      );
 
     getDb()
       .prepare(
@@ -367,7 +457,12 @@ export function insertProofReceipt(input: {
         randomUUID(),
         id,
         "created",
-        JSON.stringify({ mediaId: input.mediaId }),
+        JSON.stringify({
+          mediaId: input.mediaId,
+          creatorTrustLevel: input.creatorTrustLevel ?? "self_declared",
+          aiUsageDeclaration: input.aiUsageDeclaration ?? "unknown",
+          proofStatus: input.proofStatus ?? "active"
+        }),
         createdAt
       );
 
@@ -388,6 +483,16 @@ function receiptFromRow(row: Record<string, unknown>): ProofReceiptRecord {
     id: String(row.id),
     title: String(row.title),
     creatorClaim: String(row.creator_claim),
+    creatorTrustLevel: (row.creator_trust_level as CreatorTrustLevel) ?? "self_declared",
+    aiUsageDeclaration: (row.ai_usage_declaration as AiUsageDeclaration) ?? "unknown",
+    organisationName: row.organisation_name ? String(row.organisation_name) : undefined,
+    officialSourceUrl: row.official_source_url ? String(row.official_source_url) : undefined,
+    intendedChannel: row.intended_channel ? String(row.intended_channel) : undefined,
+    intendedAudience: row.intended_audience ? String(row.intended_audience) : undefined,
+    expiryDate: row.expiry_date ? String(row.expiry_date) : undefined,
+    versionNumber: row.version_number ? String(row.version_number) : undefined,
+    warningNote: row.warning_note ? String(row.warning_note) : undefined,
+    proofStatus: (row.proof_status as ProofStatus) ?? "active",
     proofCreatedAt: String(row.proof_created_at),
     mediaId: String(row.original_media_id),
     sha256: String(row.sha256),
@@ -403,6 +508,9 @@ export function getReceipt(id: string) {
     .prepare(
       `SELECT
         r.id, r.title, r.creator_claim, r.proof_created_at, r.original_media_id,
+        r.creator_trust_level, r.ai_usage_declaration, r.organisation_name,
+        r.official_source_url, r.intended_channel, r.intended_audience,
+        r.expiry_date, r.version_number, r.warning_note, r.proof_status,
         m.sha256, m.metadata_status, m.width, m.height, m.metadata_json, m.size_bytes
       FROM proof_receipts r
       JOIN media_assets m ON m.id = r.original_media_id
@@ -413,11 +521,74 @@ export function getReceipt(id: string) {
   return row ? receiptFromRow(row) : null;
 }
 
+export function deleteProofReceipt(id: string): DeleteProofReceiptResult {
+  const row = getDb()
+    .prepare(
+      `SELECT r.original_media_id, m.storage_path
+      FROM proof_receipts r
+      JOIN media_assets m ON m.id = r.original_media_id
+      WHERE r.id = ?`
+    )
+    .get(id) as { original_media_id: string; storage_path: string } | undefined;
+
+  if (!row) {
+    return { deleted: false, removedMediaFile: false };
+  }
+
+  withDbTransaction(() => {
+    getDb()
+      .prepare(
+        `DELETE FROM trust_cards
+        WHERE verification_id IN (
+          SELECT v.id
+          FROM verifications v
+          LEFT JOIN media_analyses a ON a.id = v.analysis_id
+          WHERE v.matched_receipt_id = ? OR a.media_id = ?
+        )`
+      )
+      .run(id, row.original_media_id);
+
+    getDb()
+      .prepare(
+        `DELETE FROM verifications
+        WHERE matched_receipt_id = ?
+          OR analysis_id IN (
+            SELECT id FROM media_analyses WHERE media_id = ?
+          )`
+      )
+      .run(id, row.original_media_id);
+
+    getDb()
+      .prepare(
+        `DELETE FROM detection_signals
+        WHERE analysis_id IN (
+          SELECT id FROM media_analyses WHERE media_id = ?
+        )`
+      )
+      .run(row.original_media_id);
+
+    getDb().prepare("DELETE FROM media_analyses WHERE media_id = ?").run(row.original_media_id);
+    getDb().prepare("DELETE FROM receipt_events WHERE receipt_id = ?").run(id);
+    getDb().prepare("DELETE FROM proof_receipts WHERE id = ?").run(id);
+    getDb().prepare("DELETE FROM phash_variants WHERE media_id = ?").run(row.original_media_id);
+    getDb().prepare("DELETE FROM media_assets WHERE id = ?").run(row.original_media_id);
+  });
+
+  return {
+    deleted: true,
+    mediaId: row.original_media_id,
+    removedMediaFile: removeStoredMediaFile(row.storage_path)
+  };
+}
+
 export function listReceipts() {
   const rows = getDb()
     .prepare(
       `SELECT
         r.id, r.title, r.creator_claim, r.proof_created_at, r.original_media_id,
+        r.creator_trust_level, r.ai_usage_declaration, r.organisation_name,
+        r.official_source_url, r.intended_channel, r.intended_audience,
+        r.expiry_date, r.version_number, r.warning_note, r.proof_status,
         m.sha256, m.metadata_status, m.width, m.height, m.metadata_json, m.size_bytes
       FROM proof_receipts r
       JOIN media_assets m ON m.id = r.original_media_id
@@ -433,6 +604,9 @@ export function findReceiptByHash(sha: string) {
     .prepare(
       `SELECT
         r.id, r.title, r.creator_claim, r.proof_created_at, r.original_media_id,
+        r.creator_trust_level, r.ai_usage_declaration, r.organisation_name,
+        r.official_source_url, r.intended_channel, r.intended_audience,
+        r.expiry_date, r.version_number, r.warning_note, r.proof_status,
         m.sha256, m.metadata_status, m.width, m.height, m.metadata_json, m.size_bytes
       FROM proof_receipts r
       JOIN media_assets m ON m.id = r.original_media_id

@@ -7,7 +7,11 @@ export function normalizeOcrText(text: string) {
 }
 
 export async function extractOcrText(buffer: Buffer) {
-  if ((process.env.CONTENTSEAL_DISABLE_OCR ?? process.env.ORIGINSEAL_DISABLE_OCR) === "1") {
+  const ocrExplicitlyEnabled = process.env.CONTENTSEAL_ENABLE_OCR === "1";
+  const ocrExplicitlyDisabled =
+    (process.env.CONTENTSEAL_DISABLE_OCR ?? process.env.ORIGINSEAL_DISABLE_OCR) === "1";
+
+  if (ocrExplicitlyDisabled || !ocrExplicitlyEnabled) {
     return { status: "unavailable" as const, text: "" };
   }
 

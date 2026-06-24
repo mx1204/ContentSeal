@@ -1,6 +1,10 @@
 # ContentSeal
 
-ContentSeal is an image-first provenance verification demo. It creates local proof receipts, verifies uploaded images against those receipts, combines deterministic and weak signals, and renders a guarded Trust Card without an LLM call.
+ContentSeal is an image-first provenance verification demo for the A2 challenge:
+
+> Authenticity in a synthetic world -- how might we build lightweight provenance tools that help people verify what is real, human, and trustworthy?
+
+The app lets a creator issue a local proof receipt for an original image, then lets anyone scan a saved web image, screenshot, repost, edited copy, or unknown visual against those receipts. It combines deterministic signals, weak provenance signals, human accountability context, and a guarded Content Trust Card. It does not claim that content is true or fake.
 
 ## Quick Start
 
@@ -14,17 +18,22 @@ Open [http://127.0.0.1:3101](http://127.0.0.1:3101).
 
 Use port `3101` for this project so it does not collide with another local app on `3000`.
 
+You do not need to deploy to Vercel for local testing. Deploy only when you need a public URL for judges, teammates, or external testers.
+
 ## Demo Flow
 
-1. In `Create Proof`, upload `demo/assets/01-original-proof.png`.
-2. In `Verify Media`, upload `demo/assets/01-original-proof.png`.
+1. In `Create Proof`, click `Load Demo`.
+2. Upload `demo/assets/01-original-proof.png` as the original media.
+3. In `Scan Image`, upload `demo/assets/01-original-proof.png`.
    Expected: `Verified Original`.
-3. Upload `demo/assets/03-screenshot-repost.png`.
+4. Upload `demo/assets/03-screenshot-repost.png`.
    Expected: `Screenshot / Repost Match`.
-4. Upload `demo/assets/02-edited-copy.png`.
+5. Upload `demo/assets/02-edited-copy.png`.
    Expected: `Modified Copy` or `Conflicting Signals`.
-5. Upload `demo/assets/04-unknown-ai-style.png`.
+6. Upload `demo/assets/04-unknown-ai-style.png`.
    Expected: `No Verified Origin Found`.
+
+The scan flow also accepts any JPEG, PNG, WebP, or AVIF image saved from a website or device. If no matching proof receipt exists, the correct outcome is an accountable unknown state, not a fake verdict.
 
 ## Commands
 
@@ -49,7 +58,9 @@ $env:CONTENTSEAL_BASE_URL="http://127.0.0.1:3101"; npm run smoke:ui
 - Uploaded media: `storage/media`
 - Both directories are ignored by git.
 
-The app currently keeps uploaded proof and verification files for local inspection. For production, replace this with a retention policy that deletes verification-only uploads after analysis while preserving proof receipt originals.
+Proof receipts can be deleted from the local UI. Deleting a proof removes its receipt, proof events, matching hash data, related verification/trust-card rows, and the original stored media file when it is safe to do so. After deletion, future scans will no longer match that proof.
+
+The app still keeps verification uploads for local inspection. For production, replace this with a retention policy that deletes verification-only uploads after analysis while preserving active proof receipt originals.
 
 ## Mock Signals
 
@@ -58,20 +69,20 @@ Watermark and classifier providers are pluggable and mockable. To demo AI-origin
 1. Upload or analyse an image and copy its SHA-256 value from the UI.
 2. Copy `demo/mock-signals.example.json` to `data/mock-signals.json`.
 3. Replace `replace-with-sha256` with the copied hash.
-4. Re-upload the same file in `Verify Media`.
+4. Re-upload the same file in `Scan Image`.
 
 C2PA can also be mocked this way. For real C2PA inspection, set `C2PATOOL_PATH` or `CONTENTSEAL_C2PATOOL_PATH` to a local `c2patool` executable.
 
 ## OCR
 
-OCR is enabled by default and used only as a weak conflict signal for visually matched images. For faster demo runs, disable OCR:
+OCR is disabled by default for fast local demos. Enable it only when you want text conflict checks for visually matched images:
 
 ```powershell
-$env:CONTENTSEAL_DISABLE_OCR="1"
+$env:CONTENTSEAL_ENABLE_OCR="1"
 npm run dev -- --hostname 127.0.0.1 --port 3101
 ```
 
-The old `ORIGINSEAL_*` environment variables still work as fallback aliases for local compatibility.
+You can still force OCR off with `CONTENTSEAL_DISABLE_OCR=1`. The old `ORIGINSEAL_*` environment variables still work as fallback aliases for local compatibility.
 
 ## Current Limits
 

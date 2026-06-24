@@ -11,6 +11,8 @@ export type TrustLabel =
   | "verified_original"
   | "modified_copy"
   | "screenshot_repost_match"
+  | "expired_content"
+  | "older_verified_version"
   | "no_verified_origin_found"
   | "conflicting_signals";
 
@@ -44,6 +46,27 @@ export type ClassifierStatus =
   | "not_run";
 
 export type MetadataStatus = "present" | "missing" | "partial";
+
+export type CreatorTrustLevel =
+  | "self_declared"
+  | "email_verified"
+  | "domain_verified"
+  | "team_co_signed"
+  | "organisation_verified";
+
+export type AiUsageDeclaration =
+  | "human_created"
+  | "ai_assisted"
+  | "ai_generated_human_review"
+  | "fully_ai_generated"
+  | "unknown";
+
+export type ProofStatus =
+  | "active"
+  | "expired"
+  | "revoked"
+  | "disputed"
+  | "updated_version_available";
 
 export type PHashVariant = "full" | "trimmed" | "center_crop";
 
@@ -131,6 +154,16 @@ export interface ReceiptSummary {
   id: string;
   title: string;
   creatorClaim: string;
+  creatorTrustLevel?: CreatorTrustLevel;
+  aiUsageDeclaration?: AiUsageDeclaration;
+  organisationName?: string;
+  officialSourceUrl?: string;
+  intendedChannel?: string;
+  intendedAudience?: string;
+  expiryDate?: string;
+  versionNumber?: string;
+  warningNote?: string;
+  proofStatus?: ProofStatus;
   proofCreatedAt: string;
   mediaId: string;
   sha256: string;
@@ -156,6 +189,12 @@ export interface VerificationEvidence {
   classifierStatus: ClassifierStatus;
   trustLabel: TrustLabel;
   creatorClaim?: string;
+  creatorTrustLevel?: CreatorTrustLevel;
+  aiUsageDeclaration?: AiUsageDeclaration;
+  proofStatus?: ProofStatus;
+  expiryDate?: string;
+  versionNumber?: string;
+  officialSourceUrl?: string;
   proofCreatedAt?: string;
   ocrConflict: boolean;
   editSignal: boolean;

@@ -9,8 +9,16 @@ npm run demo:assets
 Generated files:
 
 - `01-original-proof.png`: upload first in `Create Proof`.
-- `02-edited-copy.png`: upload in `Verify Media`; expected label is `Modified Copy` or `Conflicting Signals`.
-- `03-screenshot-repost.png`: upload in `Verify Media`; expected label is `Screenshot / Repost Match`.
-- `04-unknown-ai-style.png`: upload in `Verify Media`; expected label is `No Verified Origin Found`.
+- `02-edited-copy.png`: upload in `Scan Image`; expected label is `Modified Copy` or `Conflicting Signals`.
+- `03-screenshot-repost.png`: upload in `Scan Image`; expected label is `Screenshot / Repost Match`.
+- `04-unknown-ai-style.png`: upload in `Scan Image`; expected label is `No Verified Origin Found`.
+
+Recommended pitch path:
+
+1. Click `Load Demo` in `Create Proof`, then choose `01-original-proof.png`.
+2. Scan `01-original-proof.png` to show a verified original.
+3. Scan `03-screenshot-repost.png` to show metadata loss with visual recovery.
+4. Scan `02-edited-copy.png` to show changed-file uncertainty.
+5. Delete the created proof receipt, then scan `01-original-proof.png` again to show that local proof deletion removes future matches.
 
 To add mock C2PA, watermark, or classifier signals, copy `demo/mock-signals.example.json` to `data/mock-signals.json` and replace the key with the SHA-256 hash shown in the app.

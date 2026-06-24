@@ -8,12 +8,23 @@ import {
   UnsupportedMediaError
 } from "@/lib/analysis";
 import { getReceipt, insertProofReceipt, listReceipts } from "@/lib/db";
+import type { AiUsageDeclaration, CreatorTrustLevel, ProofStatus } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
+}
+
+function optionalText(formData: FormData, key: string) {
+  const value = String(formData.get(key) ?? "").trim();
+  return value || undefined;
+}
+
+function enumValue<T extends string>(formData: FormData, key: string, allowed: readonly T[], fallback: T) {
+  const value = String(formData.get(key) ?? "").trim();
+  return allowed.includes(value as T) ? (value as T) : fallback;
 }
 
 export async function GET() {
@@ -33,6 +44,24 @@ export async function POST(request: Request) {
     const title = String(formData.get("title") ?? "").trim() || file.name || "Untitled proof";
     const creatorClaim =
       String(formData.get("creator_claim") ?? "").trim() || "Unspecified creator claim";
+    const creatorTrustLevel = enumValue<CreatorTrustLevel>(
+      formData,
+      "creator_trust_level",
+      ["self_declared", "email_verified", "domain_verified", "team_co_signed", "organisation_verified"],
+      "self_declared"
+    );
+    const aiUsageDeclaration = enumValue<AiUsageDeclaration>(
+      formData,
+      "ai_usage_declaration",
+      ["human_created", "ai_assisted", "ai_generated_human_review", "fully_ai_generated", "unknown"],
+      "unknown"
+    );
+    const proofStatus = enumValue<ProofStatus>(
+      formData,
+      "proof_status",
+      ["active", "expired", "revoked", "disputed", "updated_version_available"],
+      "active"
+    );
     const analysis = await analyseAndStoreMedia({
       buffer: await uploadFileToBuffer(file),
       mimeType: file.type,
@@ -41,6 +70,16 @@ export async function POST(request: Request) {
     const receiptId = insertProofReceipt({
       title,
       creatorClaim,
+      creatorTrustLevel,
+      aiUsageDeclaration,
+      organisationName: optionalText(formData, "organisation_name"),
+      officialSourceUrl: optionalText(formData, "official_source_url"),
+      intendedChannel: optionalText(formData, "intended_channel"),
+      intendedAudience: optionalText(formData, "intended_audience"),
+      expiryDate: optionalText(formData, "expiry_date"),
+      versionNumber: optionalText(formData, "version_number"),
+      warningNote: optionalText(formData, "warning_note"),
+      proofStatus,
       mediaId: analysis.mediaId ?? ""
     });
     const receipt = getReceipt(receiptId);

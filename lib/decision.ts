@@ -30,6 +30,18 @@ function c2paHasEditSignal(c2pa: C2paInspection) {
   return /edit|edited|crop|transform|resize|adjust|composite|export/.test(haystack);
 }
 
+function effectiveProofStatus(receipt: ReceiptSummary | null) {
+  if (!receipt) {
+    return null;
+  }
+
+  if (receipt.expiryDate && new Date(receipt.expiryDate).getTime() < Date.now()) {
+    return "expired";
+  }
+
+  return receipt.proofStatus ?? "active";
+}
+
 export function classifyAiSignal(input: {
   c2pa: C2paInspection;
   watermark: WatermarkInspection;
@@ -66,9 +78,16 @@ export function buildDecision(input: {
     watermark: analysis.watermark,
     classifier: analysis.classifier
   });
+  const proofStatus = effectiveProofStatus(matchedReceipt);
 
   let trustLabel: TrustLabel = "no_verified_origin_found";
-  if (exactReceipt) {
+  if (proofStatus === "revoked" || proofStatus === "disputed") {
+    trustLabel = "conflicting_signals";
+  } else if (proofStatus === "expired") {
+    trustLabel = "expired_content";
+  } else if (proofStatus === "updated_version_available") {
+    trustLabel = "older_verified_version";
+  } else if (exactReceipt) {
     trustLabel = "verified_original";
   } else if (strongVisualMatch && (ocrConflict || analysis.c2pa.status === "invalid")) {
     trustLabel = "conflicting_signals";
@@ -114,6 +133,12 @@ export function buildDecision(input: {
     classifierStatus: analysis.classifier.status,
     trustLabel,
     creatorClaim: matchedReceipt?.creatorClaim,
+    creatorTrustLevel: matchedReceipt?.creatorTrustLevel,
+    aiUsageDeclaration: matchedReceipt?.aiUsageDeclaration,
+    proofStatus: proofStatus ?? undefined,
+    expiryDate: matchedReceipt?.expiryDate,
+    versionNumber: matchedReceipt?.versionNumber,
+    officialSourceUrl: matchedReceipt?.officialSourceUrl,
     proofCreatedAt: matchedReceipt?.proofCreatedAt,
     ocrConflict,
     editSignal,

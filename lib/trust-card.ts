@@ -1,3 +1,4 @@
+import { AI_USAGE_COPY, CREATOR_TRUST_COPY, PROOF_STATUS_COPY } from "./labels";
 import type { TrustCard, TrustLabel, VerificationEvidence } from "./types";
 
 const CARD_SUMMARIES: Record<TrustLabel, string> = {
@@ -7,6 +8,10 @@ const CARD_SUMMARIES: Record<TrustLabel, string> = {
     "This image is visually similar to a known ContentSeal proof receipt, but it is not the exact original file.",
   screenshot_repost_match:
     "This appears to be a screenshot or repost of verified content, but it is not the exact original file.",
+  expired_content:
+    "This upload matches a known proof receipt, but the receipt is expired or no longer current.",
+  older_verified_version:
+    "This upload matches an older verified receipt. A newer version may be available from the official source.",
   no_verified_origin_found:
     "ContentSeal did not find an exact or strong visual match to a stored proof receipt for this upload.",
   conflicting_signals:
@@ -36,6 +41,37 @@ export function generateTrustCard(evidence: VerificationEvidence): TrustCard {
 
   if (evidence.creatorClaim) {
     verified.push("The matched receipt includes a creator or publisher claim.");
+  }
+
+  if (evidence.creatorTrustLevel) {
+    const trustLevel = CREATOR_TRUST_COPY[evidence.creatorTrustLevel];
+    verified.push(`Creator trust level on the matched receipt: ${trustLevel}.`);
+    if (evidence.creatorTrustLevel === "self_declared") {
+      unverified.push("Creator identity is self-declared and has not been independently verified.");
+    }
+  }
+
+  if (evidence.aiUsageDeclaration) {
+    verified.push(
+      `Declared AI usage on the matched receipt: ${AI_USAGE_COPY[evidence.aiUsageDeclaration]}.`
+    );
+    unverified.push("Declared AI usage is creator-provided context unless supported by C2PA or tool metadata.");
+  }
+
+  if (evidence.proofStatus) {
+    const status = PROOF_STATUS_COPY[evidence.proofStatus];
+    verified.push(`Proof status on the matched receipt: ${status}.`);
+    if (evidence.proofStatus !== "active") {
+      unverified.push("The matched proof receipt should not be treated as the current active version.");
+    }
+  }
+
+  if (evidence.versionNumber) {
+    verified.push(`Receipt version: ${evidence.versionNumber}.`);
+  }
+
+  if (evidence.officialSourceUrl) {
+    verified.push("The matched receipt includes an official source URL for follow-up.");
   }
 
   if (evidence.metadataStatus === "missing") {
@@ -72,6 +108,10 @@ export function generateTrustCard(evidence: VerificationEvidence): TrustCard {
   if (evidence.trustLabel === "verified_original") {
     recommended_action =
       "Open the proof receipt to review who claimed the origin and when the receipt was created.";
+  } else if (evidence.trustLabel === "expired_content") {
+    recommended_action = "Check the latest official source before resharing this previously verified version.";
+  } else if (evidence.trustLabel === "older_verified_version") {
+    recommended_action = "Open the proof page or official source to find the newer current version.";
   } else if (evidence.trustLabel === "screenshot_repost_match") {
     recommended_action = "Open the original proof page before sharing this reposted version.";
   } else if (evidence.trustLabel === "modified_copy") {

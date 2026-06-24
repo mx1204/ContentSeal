@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import sharp from "sharp";
 import { analyseAndStoreMedia, InvalidImageError, inspectImageContent } from "@/lib/analysis";
 import { buildDecision } from "@/lib/decision";
-import { insertProofReceipt, resetDatabaseForTests } from "@/lib/db";
+import { deleteProofReceipt, getReceipt, insertProofReceipt, resetDatabaseForTests } from "@/lib/db";
 import { sha256 } from "@/lib/hash";
 import { computePHashVariants, phashSimilarity } from "@/lib/phash";
 import { generateTrustCard } from "@/lib/trust-card";
@@ -266,5 +266,33 @@ describe("ContentSeal media detection", () => {
 
     expect(verification.trust_label).toBe("no_verified_origin_found");
     expect(verification.exact_hash_match).toBe(false);
+  });
+
+  it("removes deleted proof receipts from future verification matches", async () => {
+    const original = await proofPoster();
+    const proofAnalysis = await analyseAndStoreMedia({
+      buffer: original,
+      mimeType: "image/png",
+      originalName: "poster.png"
+    });
+    const receiptId = insertProofReceipt({
+      title: "ContentSeal Summit",
+      creatorClaim: "ContentSeal Team",
+      mediaId: proofAnalysis.mediaId ?? ""
+    });
+
+    const deletion = deleteProofReceipt(receiptId);
+    expect(deletion.deleted).toBe(true);
+    expect(getReceipt(receiptId)).toBeNull();
+
+    const uploadedAnalysis = await analyseAndStoreMedia({
+      buffer: original,
+      mimeType: "image/png",
+      originalName: "poster-after-delete.png"
+    });
+    const verification = await verifyAnalysis(uploadedAnalysis);
+
+    expect(verification.trust_label).toBe("no_verified_origin_found");
+    expect(verification.matched_receipt_id).toBeNull();
   });
 });

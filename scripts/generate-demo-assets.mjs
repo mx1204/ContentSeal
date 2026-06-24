@@ -2,39 +2,82 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 
-const outDir = path.join(process.cwd(), "demo", "assets");
+const demoOutDir = path.join(process.cwd(), "demo", "assets");
+const publicOutDir = path.join(process.cwd(), "public", "demo", "assets");
 
-function posterSvg({ title, date, accent = "#d89a35" }) {
+function posterSvg({ date, status, accent, warning = false }) {
   return `
-    <svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
-      <rect width="900" height="600" fill="#f7f5ef"/>
-      <rect x="60" y="60" width="780" height="480" rx="8" fill="#345144"/>
-      <rect x="95" y="95" width="710" height="410" rx="6" fill="#17211c" opacity="0.24"/>
-      <text x="120" y="185" font-size="72" fill="#ffffff" font-family="Arial" font-weight="700">${title}</text>
-      <text x="120" y="288" font-size="48" fill="#dbeade" font-family="Arial">${date}</text>
-      <text x="120" y="365" font-size="34" fill="#f7f5ef" font-family="Arial">Main Hall, Singapore</text>
-      <circle cx="718" cy="392" r="82" fill="${accent}"/>
-      <text x="676" y="408" font-size="34" fill="#17211c" font-family="Arial" font-weight="700">OS</text>
+    <svg width="1080" height="720" viewBox="0 0 1080 720" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0" stop-color="#07100d"/>
+          <stop offset="0.55" stop-color="#10251d"/>
+          <stop offset="1" stop-color="#050807"/>
+        </linearGradient>
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="28" stdDeviation="24" flood-color="#000000" flood-opacity="0.42"/>
+        </filter>
+      </defs>
+      <rect width="1080" height="720" fill="url(#bg)"/>
+      <g opacity="0.16" stroke="#6ee7d8" stroke-width="1">
+        <path d="M80 110H1000M80 220H1000M80 330H1000M80 440H1000M80 550H1000"/>
+        <path d="M180 70V650M360 70V650M540 70V650M720 70V650M900 70V650"/>
+      </g>
+      <rect x="74" y="64" width="932" height="592" rx="34" fill="#101c17" stroke="#2c5245" filter="url(#shadow)"/>
+      <rect x="112" y="104" width="856" height="92" rx="22" fill="#07100d" stroke="#2a463c"/>
+      <text x="142" y="143" fill="${accent}" font-size="22" font-family="Cascadia Code, Consolas, monospace" font-weight="700">${status}</text>
+      <text x="142" y="176" fill="#b7c8c0" font-size="21" font-family="Inter, Arial, sans-serif">ContentSeal public proof linked notice</text>
+      <text x="122" y="310" fill="#eef8f2" font-size="72" font-family="Space Grotesk, Inter, Arial, sans-serif" font-weight="800">ContentSeal Summit</text>
+      <text x="126" y="386" fill="${warning ? "#ff6b5c" : "#6ee7d8"}" font-size="50" font-family="Space Grotesk, Inter, Arial, sans-serif" font-weight="700">${date}</text>
+      <text x="130" y="442" fill="#c8d8d0" font-size="28" font-family="Inter, Arial, sans-serif">Main Hall, Singapore / 10:00 SGT</text>
+      <g transform="translate(742 282)">
+        <rect width="194" height="194" rx="34" fill="#eef8f2"/>
+        <rect x="28" y="28" width="26" height="26" fill="#07100d"/>
+        <rect x="76" y="28" width="26" height="26" fill="#07100d"/>
+        <rect x="124" y="28" width="42" height="26" fill="#07100d"/>
+        <rect x="28" y="76" width="58" height="26" fill="#07100d"/>
+        <rect x="106" y="76" width="26" height="26" fill="#07100d"/>
+        <rect x="150" y="76" width="16" height="58" fill="#07100d"/>
+        <rect x="28" y="124" width="26" height="42" fill="#07100d"/>
+        <rect x="76" y="124" width="58" height="26" fill="#07100d"/>
+        <rect x="124" y="166" width="42" height="8" fill="#07100d"/>
+      </g>
+      <rect x="126" y="540" width="236" height="58" rx="18" fill="#07100d" stroke="#345b4d"/>
+      <text x="154" y="576" fill="#6ee7d8" font-size="20" font-family="Cascadia Code, Consolas, monospace">sha256: 8F91...A2C</text>
+      <rect x="386" y="540" width="218" height="58" rx="18" fill="#07100d" stroke="#345b4d"/>
+      <text x="414" y="576" fill="#9cff63" font-size="20" font-family="Cascadia Code, Consolas, monospace">pHash: strong</text>
+      <rect x="628" y="540" width="258" height="58" rx="18" fill="#07100d" stroke="#345b4d"/>
+      <text x="656" y="576" fill="#eef8f2" font-size="20" font-family="Cascadia Code, Consolas, monospace">AI use: assisted</text>
     </svg>
   `;
 }
 
-function unknownAiStyleSvg() {
+function unknownSvg() {
   return `
-    <svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+    <svg width="1080" height="720" viewBox="0 0 1080 720" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0" stop-color="#274c77"/>
-          <stop offset="0.5" stop-color="#6096ba"/>
-          <stop offset="1" stop-color="#e7ecef"/>
+        <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0" stop-color="#0a1020"/>
+          <stop offset="0.5" stop-color="#17224a"/>
+          <stop offset="1" stop-color="#07100d"/>
         </linearGradient>
+        <radialGradient id="r" cx="50%" cy="42%" r="58%">
+          <stop offset="0" stop-color="#5b8cff" stop-opacity="0.95"/>
+          <stop offset="0.46" stop-color="#16c8a0" stop-opacity="0.42"/>
+          <stop offset="1" stop-color="#050807" stop-opacity="0"/>
+        </radialGradient>
       </defs>
-      <rect width="900" height="600" fill="url(#sky)"/>
-      <path d="M0 520 C120 420 230 455 350 380 C490 290 620 340 900 190 L900 600 L0 600 Z" fill="#17211c"/>
-      <path d="M90 500 C220 420 330 455 450 360 C570 268 720 310 900 245 L900 600 L90 600 Z" fill="#345144" opacity="0.86"/>
-      <circle cx="670" cy="150" r="70" fill="#f7f5ef" opacity="0.9"/>
-      <path d="M230 420 Q450 220 665 420" fill="none" stroke="#d89a35" stroke-width="26" opacity="0.86"/>
-      <path d="M250 454 Q450 270 650 454" fill="none" stroke="#ffffff" stroke-width="11" opacity="0.72"/>
+      <rect width="1080" height="720" fill="url(#g)"/>
+      <rect width="1080" height="720" fill="url(#r)"/>
+      <g fill="none" stroke="#eef8f2" stroke-opacity="0.2" stroke-width="2">
+        <path d="M120 536C280 284 426 306 540 172C648 304 794 288 954 536"/>
+        <path d="M172 550C310 374 428 406 540 260C650 404 766 376 910 550"/>
+      </g>
+      <circle cx="540" cy="336" r="122" fill="#eef8f2" opacity="0.08" stroke="#6ee7d8" stroke-width="3"/>
+      <text x="118" y="120" fill="#eef8f2" font-size="34" font-family="Space Grotesk, Inter, Arial, sans-serif" font-weight="800">Unknown Visual Claim</text>
+      <text x="118" y="166" fill="#b7c8c0" font-size="24" font-family="Inter, Arial, sans-serif">No matching proof receipt in local demo database</text>
+      <rect x="118" y="560" width="380" height="64" rx="20" fill="#050807" opacity="0.72" stroke="#5b8cff"/>
+      <text x="148" y="599" fill="#9cff63" font-size="21" font-family="Cascadia Code, Consolas, monospace">status: no_verified_origin</text>
     </svg>
   `;
 }
@@ -43,57 +86,66 @@ async function pngFromSvg(svg) {
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
-await mkdir(outDir, { recursive: true });
+async function writeAsset(name, buffer) {
+  await writeFile(path.join(demoOutDir, name), buffer);
+  await writeFile(path.join(publicOutDir, name), buffer);
+}
+
+await mkdir(demoOutDir, { recursive: true });
+await mkdir(publicOutDir, { recursive: true });
 
 const original = await pngFromSvg(
   posterSvg({
-    title: "ContentSeal Summit",
-    date: "27 June 2026"
+    date: "27 June 2026",
+    status: "OFFICIAL PROOF",
+    accent: "#9cff63"
   })
 );
-await writeFile(path.join(outDir, "01-original-proof.png"), original);
+await writeAsset("01-original-proof.png", original);
 
 const edited = await pngFromSvg(
   posterSvg({
-    title: "ContentSeal Summit",
     date: "29 June 2026",
-    accent: "#b95f43"
+    status: "MODIFIED COPY",
+    accent: "#ff6b5c",
+    warning: true
   })
 );
-await writeFile(path.join(outDir, "02-edited-copy.png"), edited);
+await writeAsset("02-edited-copy.png", edited);
 
 const screenshot = await sharp({
   create: {
-    width: 900,
-    height: 720,
+    width: 1080,
+    height: 820,
     channels: 4,
-    background: "#202020"
+    background: "#050807"
   }
 })
   .composite([
     {
-      input: original,
-      left: 0,
-      top: 58
-    },
-    {
       input: Buffer.from(`
-        <svg width="900" height="720" xmlns="http://www.w3.org/2000/svg">
-          <rect x="0" y="0" width="900" height="58" fill="#101010"/>
-          <rect x="0" y="658" width="900" height="62" fill="#101010"/>
-          <text x="28" y="38" font-size="24" fill="#ffffff" font-family="Arial">Chat screenshot</text>
-          <text x="28" y="698" font-size="22" fill="#bdbdbd" font-family="Arial">Forwarded image</text>
+        <svg width="1080" height="820" xmlns="http://www.w3.org/2000/svg">
+          <rect width="1080" height="820" fill="#050807"/>
+          <rect x="54" y="36" width="972" height="748" rx="34" fill="#101c17" stroke="#263f35"/>
+          <rect x="84" y="66" width="912" height="74" rx="22" fill="#07100d"/>
+          <circle cx="128" cy="103" r="18" fill="#9cff63"/>
+          <text x="160" y="112" fill="#eef8f2" font-size="24" font-family="Inter, Arial, sans-serif" font-weight="700">Campus announcements</text>
+          <text x="780" y="112" fill="#b7c8c0" font-size="20" font-family="Inter, Arial, sans-serif">Forwarded image</text>
         </svg>
       `),
       left: 0,
       top: 0
+    },
+    {
+      input: await sharp(original).resize({ width: 860 }).png().toBuffer(),
+      left: 110,
+      top: 176
     }
   ])
   .png()
   .toBuffer();
-await writeFile(path.join(outDir, "03-screenshot-repost.png"), screenshot);
+await writeAsset("03-screenshot-repost.png", screenshot);
 
-const unknown = await pngFromSvg(unknownAiStyleSvg());
-await writeFile(path.join(outDir, "04-unknown-ai-style.png"), unknown);
+await writeAsset("04-unknown-ai-style.png", await pngFromSvg(unknownSvg()));
 
-console.log(`Demo assets written to ${outDir}`);
+console.log(`Demo assets written to ${demoOutDir} and ${publicOutDir}`);

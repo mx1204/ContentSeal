@@ -1,5 +1,178 @@
-import { ContentSealApp } from "@/components/ContentSealApp";
+import {
+  ArrowRight,
+  BadgeCheck,
+  Binary,
+  CalendarClock,
+  Database,
+  Fingerprint,
+  Link as LinkIcon,
+  ScanLine,
+  Sparkles
+} from "lucide-react";
+import { InteractiveProofHero } from "@/components/InteractiveProofHero";
+import { SiteNav } from "@/components/SiteNav";
+
+const trustSignals = [
+  "SHA-256 exact match",
+  "Perceptual similarity",
+  "Declared AI usage",
+  "Creator trust level",
+  "Expiry and version status",
+  "Optional C2PA context"
+];
+
+const routes = [
+  {
+    href: "/create",
+    title: "Create Proof",
+    text: "Issue a tamper-evident receipt before a poster, notice, image, or screenshot spreads.",
+    icon: Fingerprint
+  },
+  {
+    href: "/verify",
+    title: "Scan Any Image",
+    text: "Upload a saved web image, screenshot, repost, or unknown visual and compare it against known receipts.",
+    icon: ScanLine
+  },
+  {
+    href: "/trust",
+    title: "Trust Engine",
+    text: "See how integrity, provenance, AI declaration, identity, and lifecycle signals stay separate.",
+    icon: Database
+  },
+  {
+    href: "/demo",
+    title: "Demo Cases",
+    text: "Run the hackathon story: official poster, edited copy, screenshot repost, and outdated version.",
+    icon: Sparkles
+  }
+];
 
 export default function Home() {
-  return <ContentSealApp />;
+  return (
+    <main className="min-h-screen bg-void text-frost">
+      <SiteNav tone="dark" />
+
+      <InteractiveProofHero />
+
+      <section className="border-b border-white/10 bg-graphite">
+        <div className="mx-auto grid max-w-7xl gap-4 px-4 py-8 sm:grid-cols-2 sm:px-6 lg:grid-cols-6 lg:px-8">
+          {trustSignals.map((signal) => (
+            <div className="flex items-center gap-2 rounded-md border border-white/10 bg-void/45 px-3 py-3" key={signal}>
+              <BadgeCheck className="text-pulse" size={16} />
+              <span className="text-sm font-medium text-frost/80">{signal}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-void px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <div>
+              <p className="text-sm font-semibold text-wire">Product surface</p>
+              <h2 className="mt-2 text-3xl font-semibold tracking-normal text-frost">
+                A complete site, not just one upload box.
+              </h2>
+            </div>
+            <a className="inline-flex items-center gap-2 text-sm font-semibold text-pulse" href="/trust">
+              Explore the trust model
+              <ArrowRight size={16} />
+            </a>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {routes.map((route) => {
+              const Icon = route.icon;
+              return (
+                <a
+                  className="group rounded-md border border-white/10 bg-panel p-5 transition hover:-translate-y-0.5 hover:border-wire/45 hover:bg-white/8"
+                  href={route.href}
+                  key={route.href}
+                >
+                  <div className="grid h-11 w-11 place-items-center rounded-md bg-white/8 text-wire group-hover:bg-wire group-hover:text-void">
+                    <Icon size={21} />
+                  </div>
+                  <h3 className="mt-5 text-lg font-semibold text-frost">{route.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-frost/62">{route.text}</p>
+                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-pulse">
+                    Open page
+                    <ArrowRight size={16} />
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-white/10 bg-frost text-ink">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:px-8">
+          <div>
+            <p className="text-sm font-semibold text-moss">How the engine thinks</p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-normal">
+              ContentSeal does not call something true. It shows why it can be trusted.
+            </h2>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/70">
+              The system separates deterministic proof from weaker context. A file can match a proof
+              receipt exactly, look visually related, contain missing metadata, include a self-declared
+              creator, or be expired. Those signals should not collapse into one vague score.
+            </p>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              {[
+              { icon: Fingerprint, title: "Integrity", text: "Hash and pHash decide exact, modified, or screenshot-style matches." },
+              { icon: Binary, title: "Evidence", text: "C2PA, metadata, OCR, classifier, and watermark signals stay explainable." },
+                { icon: CalendarClock, title: "Lifecycle", text: "Receipts can be active, expired, revoked, disputed, replaced, or deleted locally." },
+                { icon: LinkIcon, title: "Public proof", text: "Proof links and QR-ready pages survive when metadata is stripped." }
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div className="rounded-md border border-ink/10 bg-white p-4" key={item.title}>
+                    <Icon className="text-moss" size={20} />
+                    <p className="mt-3 text-sm font-semibold">{item.title}</p>
+                    <p className="mt-1 text-sm leading-6 text-ink/65">{item.text}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-md border border-ink/10 bg-void p-3 text-frost">
+            <img
+              alt="Screenshot repost demo"
+              className="h-64 w-full rounded-md object-cover"
+              src="/demo/assets/03-screenshot-repost.png"
+            />
+            <div className="mt-3 grid gap-2 rounded-md bg-white/8 p-4">
+              <p className="text-sm font-semibold text-wire">Screenshot / Repost Match</p>
+              <p className="text-sm leading-6 text-frost/70">
+                Visually related to a known proof receipt, but not the original file. Metadata is missing,
+                so users should open the original proof page before resharing.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-void px-4 py-14 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5 rounded-md border border-wire/25 bg-wire/10 p-6">
+          <div>
+            <p className="text-sm font-semibold text-wire">Ready for the demo?</p>
+            <h2 className="mt-1 text-2xl font-semibold text-frost">Create proof first. Scan any copy later.</h2>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <a className="inline-flex min-h-11 items-center gap-2 rounded-md bg-pulse px-4 py-2 text-sm font-bold text-void hover:bg-wire" href="/create">
+              Create Proof
+              <Fingerprint size={17} />
+            </a>
+            <a className="inline-flex min-h-11 items-center gap-2 rounded-md border border-white/15 bg-white/7 px-4 py-2 text-sm font-bold text-frost hover:bg-white/12" href="/demo">
+              View Demo Cases
+              <ArrowRight size={17} />
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
 }

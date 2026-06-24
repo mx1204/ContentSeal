@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getReceipt } from "@/lib/db";
+import { deleteProofReceipt, getReceipt } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,5 +17,23 @@ export async function GET(
   return NextResponse.json({
     receipt,
     media_url: `/api/media/${receipt.mediaId}`
+  });
+}
+
+export async function DELETE(
+  _request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+  const result = deleteProofReceipt(id);
+
+  if (!result.deleted) {
+    return NextResponse.json({ error: "Proof receipt not found." }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    deleted: true,
+    media_id: result.mediaId,
+    removed_media_file: result.removedMediaFile
   });
 }
